@@ -29,11 +29,23 @@ const DrevoApp = {
     this.cacheDOM();
     this.bindEvents();
     this.toggleObraField(); // Configura estado inicial da Obra
+    this.registerServiceWorker(); // Ativa PWA
     await this.loadOrders();
     this.renderKPIs();
     this.renderOrders();
     this.setupColorSwatches();
     this.setupAutoRefresh();
+  },
+
+  // Registrar Service Worker para tornar o app instalável (PWA)
+  registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('PWA Service Worker ativo!', reg.scope))
+          .catch(err => console.warn('Falha ao registrar Service Worker PWA:', err));
+      });
+    }
   },
 
   // Mapeamento dos Elementos DOM

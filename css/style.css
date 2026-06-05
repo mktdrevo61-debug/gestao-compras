@@ -1464,3 +1464,103 @@ body::after {
 .hidden {
   display: none !important;
 }
+
+/* ==========================================================================
+   OTIMIZAÇÕES DE RESPONSIVIDADE E ACESSIBILIDADE MOBILE (PREMIUM)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .welcome-title {
+    font-size: 2.1rem;
+  }
+  .screen-title {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .app-container {
+    padding-top: 5.8rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  .welcome-title {
+    font-size: 1.8rem;
+  }
+  
+  .welcome-desc {
+    font-size: 0.85rem;
+  }
+
+  .screen-title {
+    font-size: 1.5rem;
+    margin-bottom: 1.2rem;
+  }
+
+  /* Rodapé do Formulário Empilhado para Melhor Clique (Acessibilidade) */
+  .form-footer {
+    flex-direction: column-reverse;
+    gap: 0.8rem;
+  }
+  .form-footer .btn-form {
+    width: 100%;
+    justify-content: center;
+    padding: 1rem; /* Botão maior para fácil toque */
+  }
+
+  /* Botões de Ação no Card do Pedido */
+  .order-actions-row {
+    flex-wrap: wrap;
+    justify-content: stretch;
+    gap: 0.6rem;
+  }
+  .order-actions-row .btn-card-action {
+    flex-grow: 1;
+    justify-content: center;
+    padding: 0.8rem 1rem; /* Aumenta a área de toque */
+  }
+}
+
+@media (max-width: 480px) {
+  .brand-nav {
+    padding: 0.7rem 1.2rem;
+  }
+
+  .nav-logo-box img {
+    height: 38px !important;
+  }
+
+  /* Reduz espaço do indicador ERP para caber em telas estreitas */
+  .erp-status-indicator {
+    padding: 0.3rem 0.6rem;
+  }
+  
+  .erp-status-indicator span {
+    font-size: 0.68rem;
+  }
+
+  /* Habilita rolagem horizontal limpa nas abas sem barra de rolagem nativa feia */
+  .filter-tabs {
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .filter-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Padding menor no modal de Sincronização ERP */
+  .sync-modal {
+    padding: 1.8rem 1.2rem;
+  }
+  
+  .sync-title {
+    font-size: 1.3rem;
+  }
+  
+  .sync-console {
+    height: 95px;
+    font-size: 0.7rem;
+  }
+}
+

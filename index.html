@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#E50000">
+  <meta name="description" content="Drevo Gestão de Compras — Aplicativo corporativo premium para registro e controle de pedidos integrado ao ERP.">
+  <title>Drevo — Gestão de Compras</title>
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Estilos Oficiais do Módulo -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Menu de Navegação Superior (Translucido e Fixo) -->
+  <nav class="brand-nav">
+    <div class="nav-left">
+      <!-- Botão Voltar (aparece dinamicamente em telas internas) -->
+      <button id="btn-back-nav" class="btn-back-nav" aria-label="Voltar para a página inicial">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+      
+      <!-- Logotipo Oficial Drevo -->
+      <div id="nav-logo" class="nav-logo-box" aria-label="Drevo Home">
+        <img src="assets/logo.png" alt="Drevo Logo" style="height: 52px; width: auto; object-fit: contain;">
+      </div>
+    </div>
+
+    <!-- Indicador Ativo de Conexão com o ERP -->
+    <div id="erp-indicator" class="erp-status-indicator" title="Status de conexão com servidores ERP corporativos">
+      <span id="erp-indicator-text" style="display: flex; align-items: center; gap: 0.5rem;">
+        <span class="status-dot"></span>
+        ERP Conectado
+      </span>
+    </div>
+  </nav>
+
+  <!-- Container de Conteúdo Geral do Aplicativo -->
+  <main class="app-container">
+
+    <!-- ==========================================================================
+         1. TELA PRINCIPAL (DASHBOARD / HOME)
+         ========================================================================== -->
+    <section id="screen-home" class="app-screen active">
+      
+      <!-- Boas-vindas e Identidade do Módulo -->
+      <div class="welcome-box">
+        <h1 class="welcome-title">
+          Gestão de Compras
+        </h1>
+        <p class="welcome-desc">Registre requisições de compra de materiais e acompanhe o status da sua aprovação.</p>
+      </div>
+
+      <!-- Métricas / KPIs Resumidas -->
+      <div class="kpis-grid">
+        <div class="kpi-card kpi-total">
+          <span class="kpi-label">Total de Pedidos</span>
+          <span id="kpi-total-val" class="kpi-val">00</span>
+        </div>
+        <div class="kpi-card kpi-pending">
+          <span class="kpi-label">Aguardando Ações</span>
+          <span id="kpi-pending-val" class="kpi-val">00</span>
+        </div>
+        <div class="kpi-card kpi-synced">
+          <span class="kpi-label">Comprados</span>
+          <span id="kpi-synced-val" class="kpi-val">00</span>
+        </div>
+      </div>
+
+      <!-- Botões de Ações Principais (FP e CP) baseados no rascunho do quadro -->
+      <div class="action-cards-grid">
+        <!-- FP: Fazer Pedido -->
+        <div id="card-fp" class="action-card card-fp">
+          <div class="action-icon-box">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="12" y1="18" x2="12" y2="12"></line>
+              <line x1="9" y1="15" x2="15" y2="15"></line>
+            </svg>
+          </div>
+          <h2 class="action-title">Fazer Pedido</h2>
+          <p class="action-desc">Cadastre um novo item informando especificações completas (unidade de medida, cor, quantidade, marca e centro de resultado).</p>
+        </div>
+
+        <!-- CP: Acompanhar Pedido -->
+        <div id="card-cp" class="action-card card-cp">
+          <!-- Badge flutuante mostrando pedidos ativos aguardando ação -->
+          <span id="badge-pending-count" class="card-badge" style="display: none;">0</span>
+          
+          <div class="action-icon-box">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2" fill="none" style="opacity: 0.1;"></rect>
+            </svg>
+          </div>
+          <h2 class="action-title">Acompanhar Pedido</h2>
+          <p class="action-desc">Monitore a evolução dos seus pedidos na timeline interativa, consulte detalhes técnicos e integre requisições ao ERP da Drevo.</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ==========================================================================
+         2. TELA FORMULÁRIO (FAZER PEDIDO - FP)
+         ========================================================================== -->
+    <section id="screen-form" class="app-screen">
+      
+      <div class="glass-panel">
+        <span class="screen-tag">Formulário de Requisição</span>
+        <h1 class="screen-title">Registrar Novo Pedido</h1>
+        
+        <form id="purchase-order-form" class="form-layout" novalidate>
+          
+          <!-- 1. Item (Descrição / Nome) -->
+          <div class="input-group form-col-full">
+            <label for="input-item" class="input-label">Descrição do Item</label>
+            <input type="text" id="input-item" class="input-field" placeholder="Digite a descrição do item a ser solicitado..." required>
+          </div>
+
+          <!-- 2. Unidade de Medida -->
+          <div class="input-group">
+            <label for="select-unit" class="input-label">Unidade de Medida</label>
+            <select id="select-unit" class="input-field">
+              <option value="Unidade">Unidade (Un)</option>
+              <option value="Metros">Metros (m)</option>
+              <option value="Kg">Quilogramas (Kg)</option>
+              <option value="Litros">Litros (L)</option>
+              <option value="Pacote">Pacote (Pct)</option>
+              <option value="Caixa">Caixa (Cx)</option>
+              <option value="Saco">Saco (Sc)</option>
+            </select>
+          </div>
+
+          <!-- 3. Quantidade com Stepper Dinâmico (+ / -) -->
+          <div class="input-group">
+            <label for="input-qty" class="input-label">Quantidade</label>
+            <div class="qty-stepper">
+              <button type="button" id="qty-minus" class="qty-btn" aria-label="Diminuir quantidade">−</button>
+              <input type="number" id="input-qty" class="input-field qty-input" value="1" min="1" required>
+              <button type="button" id="qty-plus" class="qty-btn" aria-label="Aumentar quantidade">+</button>
+            </div>
+          </div>
+
+          <!-- 4. Cor (Texto + Paleta de cores rápida) -->
+          <div class="input-group color-picker-box">
+            <label for="input-color" class="input-label">Cor Especificada</label>
+            <input type="text" id="input-color" class="input-field" placeholder="Digite a cor ou especificação de acabamento..." required>
+            <!-- Seleção Visual de Cores Rápidas -->
+            <div class="color-swatches">
+              <span class="swatch" style="background-color: #000000;" data-color="Preto" title="Preto"></span>
+              <span class="swatch" style="background-color: #ffffff;" data-color="Branco" title="Branco"></span>
+              <span class="swatch" style="background-color: #E50000;" data-color="Vermelho" title="Vermelho"></span>
+              <span class="swatch" style="background-color: #0052cc;" data-color="Azul" title="Azul"></span>
+              <span class="swatch" style="background-color: #2ecc71;" data-color="Verde" title="Verde"></span>
+              <span class="swatch" style="background-color: #f1c40f;" data-color="Amarelo" title="Amarelo"></span>
+              <span class="swatch" style="background-color: #7f8c8d;" data-color="Cinza" title="Cinza"></span>
+            </div>
+          </div>
+
+          <!-- 5. Marca de Preferência -->
+          <div class="input-group">
+            <label for="input-brand" class="input-label">Marca / Fabricante</label>
+            <input type="text" id="input-brand" class="input-field" placeholder="Digite a marca de preferência ou fabricante..." required>
+          </div>
+
+          <!-- 6. Centro de Resultado (Centro de Custo) -->
+          <div class="input-group form-col-full">
+            <label for="select-costcenter" class="input-label">Centro de Resultado</label>
+            <select id="select-costcenter" class="input-field">
+              <option value="Produção">Obras / Produção</option>
+              <option value="TI">Tecnologia da Informação (TI)</option>
+              <option value="Marketing">Comercial / Marketing</option>
+              <option value="Almoxarifado">Almoxarifado Geral</option>
+              <option value="Administrativo">Administrativo / RH</option>
+              <option value="Engenharia">Planejamento / Engenharia</option>
+            </select>
+          </div>
+
+          <!-- 7. Identificação da Obra (Condicional para Obras / Produção) -->
+          <div id="group-obra" class="input-group form-col-full">
+            <label for="input-obra" class="input-label">Identificação da Obra</label>
+            <input type="text" id="input-obra" class="input-field" placeholder="Para qual obra seria o material? (Ex: Obra Centro, Residencial Alpha...)">
+          </div>
+
+          <!-- Botões do Formulário -->
+          <div class="form-footer form-col-full">
+            <button type="button" id="btn-cancel-form" class="btn-form btn-form-cancel">Cancelar</button>
+            <button type="submit" class="btn-form btn-form-submit">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              Confirmar Pedido
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+    </section>
+
+    <!-- ==========================================================================
+         3. TELA ACOMPANHAMENTO (CONTROLAR PEDIDO - CP)
+         ========================================================================== -->
+    <section id="screen-tracking" class="app-screen">
+      
+      <div class="glass-panel">
+        <span class="screen-tag">Painel de Acompanhamento</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.8rem;">
+          <h1 class="screen-title" style="margin-bottom: 0;">Controle de Pedidos</h1>
+          <button id="btn-export-csv" class="btn-card-action btn-card-sync" style="background: rgba(46, 204, 113, 0.1); color: var(--status-done-text); border-color: var(--status-done-border); padding: 0.7rem 1.2rem; font-size: 0.75rem;" title="Exportar pedidos para Excel (CSV)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exportar Planilha
+          </button>
+        </div>
+        
+        <!-- Barra de Filtros e Busca -->
+        <div class="filters-bar">
+          
+          <!-- Busca por texto -->
+          <div class="search-wrapper">
+            <span class="search-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </span>
+            <input type="text" id="input-search" class="input-field search-input" placeholder="Pesquisar por item, marca, ID ou setor...">
+          </div>
+
+          <!-- Abas de Status -->
+          <div class="filter-tabs">
+            <button class="filter-tab active" data-filter="all">Todos</button>
+            <button class="filter-tab" data-filter="pending">Pendentes</button>
+            <button class="filter-tab" data-filter="synced">Comprados</button>
+            <button class="filter-tab" data-filter="done">Concluídos</button>
+          </div>
+
+        </div>
+
+        <!-- Lista Dinâmica de Pedidos -->
+        <div id="orders-container" class="orders-list">
+          <!-- Populado dinamicamente via JS -->
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ==========================================================================
+       OVERLAY MODAL DE SINCRONIZAÇÃO DE DADOS ERP (POPUP ANIMADO)
+       ========================================================================== -->
+  <div id="sync-overlay" class="sync-overlay">
+    <div class="sync-modal">
+      <div class="sync-radar">
+        <svg class="sync-radar-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+        </svg>
+      </div>
+      <h2 id="sync-order-title" class="sync-title">Registrando Compra...</h2>
+      <p class="sync-desc">Processando o faturamento e faturando material para a obra destino.</p>
+      
+      <!-- Terminal simulado para saída de logs hacker-style -->
+      <div id="sync-console" class="sync-console">
+        <!-- Adicionado progressivamente por app.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       TOAST NOTIFICATION (ALERTA PREMIUM FLUTUANTE)
+       ========================================================================== -->
+  <div id="toast-notification" class="toast-msg">
+    <span id="toast-icon"></span>
+    <span id="toast-text">Alerta corporativo premium.</span>
+  </div>
+
+  <!-- RODAPÉ CORPORATIVO OFICIAL DREVO COMPRAS -->
+  <footer class="brand-footer">
+    <div class="footer-logo-box">
+      <img src="assets/logo.png" alt="Drevo Logo Rodapé" style="height: 40px; width: auto; object-fit: contain; opacity: 0.85;">
+    </div>
+    <p class="footer-text">© 2026 DREVO. Portal Corporativo de Compras.</p>
+    <p class="footer-text" style="font-size: 0.65rem; margin-top: 0.3rem; opacity: 0.5;">Banco de Dados Integrado e Fila de Transmissão Corporativa.</p>
+  </footer>
+
+  <!-- Scripts Oficiais da Aplicação -->
+  <script src="js/app.js"></script>
+</body>
+</html>

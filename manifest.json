@@ -1,0 +1,23 @@
+{
+  "short_name": "Drevo Compras",
+  "name": "Drevo - Gestão de Compras",
+  "icons": [
+    {
+      "src": "assets/logo.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/logo.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#000000",
+  "theme_color": "#E50000",
+  "display": "standalone",
+  "orientation": "portrait"
+}

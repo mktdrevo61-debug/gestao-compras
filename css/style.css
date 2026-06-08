@@ -1791,5 +1791,16 @@ body::after {
   line-height: 1.4;
 }
 
+/* Badge de status entregue na obra */
+.status-badge.status-done-obra {
+  background: rgba(25, 111, 151, 0.12);
+  border-color: rgba(25, 111, 151, 0.3);
+  color: var(--sync-teal);
+}
+.status-badge.status-done-obra::before {
+  background: var(--sync-teal);
+}
+
+
 
 

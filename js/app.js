@@ -20,6 +20,7 @@ const DrevoApp = {
     if (s === 'aprovado' || s === 'approved') return 'approved';
     if (s === 'sincronizado' || s === 'synced' || s === 'sincronizado erp' || s === 'comprado' || s === 'bought') return 'synced';
     if (s === 'entregue' || s === 'done' || s === 'recebido') return 'done';
+    if (s === 'done_obra' || s === 'entregue na obra' || s === 'obra_entregue' || s === 'entregue_obra') return 'done_obra';
     if (s === 'recusado' || s === 'rejected') return 'rejected';
     return 'pending';
   },
@@ -305,7 +306,7 @@ const DrevoApp = {
     }).length;
     const synced = this.orders.filter(o => {
       const norm = this.normalizeStatus(o.status);
-      return norm === 'synced' || norm === 'done';
+      return norm === 'synced' || norm === 'done' || norm === 'done_obra';
     }).length;
 
     this.kpiTotal.textContent = String(total).padStart(2, '0');
@@ -323,7 +324,7 @@ const DrevoApp = {
     // --- NOVAS MÉTRICAS OPERACIONAIS DO DASHBOARD ---
     const activeCritical = this.orders.filter(o => {
       const norm = this.normalizeStatus(o.status);
-      return norm !== 'done' && norm !== 'rejected' && o.priority === 'critico';
+      return norm !== 'done' && norm !== 'done_obra' && norm !== 'rejected' && o.priority === 'critico';
     }).length;
 
     const approvedCount = this.orders.filter(o => {
@@ -331,7 +332,10 @@ const DrevoApp = {
       return norm === 'approved';
     }).length;
 
-    const activeOrders = this.orders.filter(o => this.normalizeStatus(o.status) !== 'done');
+    const activeOrders = this.orders.filter(o => {
+      const norm = this.normalizeStatus(o.status);
+      return norm !== 'done' && norm !== 'done_obra';
+    });
     let topCC = 'Nenhum';
     if (activeOrders.length > 0) {
       const ccCounts = {};
@@ -479,14 +483,14 @@ const DrevoApp = {
       let passFilter = false;
       const normStatus = this.normalizeStatus(order.status);
       if (this.activeFilter === 'all') {
-        // Excluir pedidos concluídos (done) ou faturados (synced) da aba "Todos" para evitar poluição
-        passFilter = (normStatus !== 'done' && normStatus !== 'synced');
+        // Excluir pedidos concluídos (done ou done_obra) ou faturados (synced) da aba "Todos" para evitar poluição
+        passFilter = (normStatus !== 'done' && normStatus !== 'done_obra' && normStatus !== 'synced');
       } else if (this.activeFilter === 'pending') {
         passFilter = (normStatus === 'pending' || normStatus === 'approved');
       } else if (this.activeFilter === 'synced') {
         passFilter = (normStatus === 'synced');
       } else if (this.activeFilter === 'done') {
-        passFilter = (normStatus === 'done');
+        passFilter = (normStatus === 'done' || normStatus === 'done_obra');
       }
 
       // Filtro por Busca
@@ -527,14 +531,15 @@ const DrevoApp = {
           { action: 'pending', message: 'Pedido lançado no sistema por Colaborador.', date: order.date }
         ];
         const oldSt = this.normalizeStatus(order.status);
-        if (oldSt === 'approved' || oldSt === 'synced' || oldSt === 'done') {
+        if (oldSt === 'approved' || oldSt === 'synced' || oldSt === 'done' || oldSt === 'done_obra') {
           order.logs.push({ action: 'approved', message: 'Pedido aprovado pelo Gestor.', date: order.date });
         }
-        if (oldSt === 'synced' || oldSt === 'done') {
+        if (oldSt === 'synced' || oldSt === 'done' || oldSt === 'done_obra') {
           order.logs.push({ action: 'synced', message: 'Compra faturada via ERP corporativo.', date: order.date });
         }
-        if (oldSt === 'done') {
-          order.logs.push({ action: 'done', message: 'Material recebido no Almoxarifado.', date: order.date });
+        if (oldSt === 'done' || oldSt === 'done_obra') {
+          const logMsg = (oldSt === 'done_obra') ? 'Material entregue na obra destino.' : 'Material recebido no Almoxarifado.';
+          order.logs.push({ action: oldSt, message: logMsg, date: order.date });
         }
       }
 
@@ -551,8 +556,11 @@ const DrevoApp = {
         statusText = 'Comprado';
         statusClass = 'status-synced';
       } else if (st === 'done') {
-        statusText = 'Recebido no Almoxarifado';
+        statusText = 'Disponível no Almoxarifado';
         statusClass = 'status-done';
+      } else if (st === 'done_obra') {
+        statusText = 'Entregue na Obra';
+        statusClass = 'status-done-obra';
       } else if (st === 'rejected') {
         statusText = 'Pedido Recusado';
         statusClass = 'status-rejected';
@@ -562,13 +570,13 @@ const DrevoApp = {
       let progressPercent = 0;
       if (st === 'approved') progressPercent = 33;
       else if (st === 'synced') progressPercent = 66;
-      else if (st === 'done') progressPercent = 100;
+      else if (st === 'done' || st === 'done_obra') progressPercent = 100;
 
       // Configuração das classes ativas nos nós da timeline
       const node1Class = 'completed';
-      const node2Class = (st === 'approved' || st === 'synced' || st === 'done') ? (st === 'approved' ? 'active' : 'completed') : '';
-      const node3Class = (st === 'synced' || st === 'done') ? (st === 'synced' ? 'active' : 'completed') : '';
-      const node4Class = (st === 'done') ? 'active' : '';
+      const node2Class = (st === 'approved' || st === 'synced' || st === 'done' || st === 'done_obra') ? (st === 'approved' ? 'active' : 'completed') : '';
+      const node3Class = (st === 'synced' || st === 'done' || st === 'done_obra') ? (st === 'synced' ? 'active' : 'completed') : '';
+      const node4Class = (st === 'done' || st === 'done_obra') ? 'active' : '';
 
       // Prioridade formatada para exibição
       const priorityLabel = {
@@ -662,8 +670,8 @@ const DrevoApp = {
               <div class="timeline-node ${node4Class}">
                 <div class="node-dot">4</div>
                 <div class="node-info">
-                  <h4 class="node-title">Entregue</h4>
-                  <p class="node-desc">Disponível no Almoxarifado.</p>
+                  <h4 class="node-title">${st === 'done_obra' ? 'Entregue na Obra' : (st === 'done' ? 'Disponível no Almoxarifado' : 'Entregue')}</h4>
+                  <p class="node-desc">${st === 'done_obra' ? 'Material na obra destino.' : 'Disponível no Almoxarifado.'}</p>
                 </div>
               </div>
             </div>
@@ -679,7 +687,7 @@ const DrevoApp = {
                   let logClass = 'pending';
                   if (log.action === 'approved') logClass = 'approved';
                   else if (log.action === 'synced') logClass = 'synced';
-                  else if (log.action === 'done') logClass = 'success';
+                  else if (log.action === 'done' || log.action === 'done_obra') logClass = 'success';
                   
                   return `
                     <div class="log-timeline-item ${logClass}">
@@ -726,9 +734,13 @@ const DrevoApp = {
       `;
     } else if (st === 'synced') {
       buttons += `
-        <button class="btn-card-action btn-card-approve" style="background: rgba(46, 204, 113, 0.1); color: var(--status-done-text); border-color: var(--status-done-border);" onclick="event.stopPropagation(); DrevoApp.completeOrder('${order.id}')">
+        <button class="btn-card-action btn-card-approve" onclick="event.stopPropagation(); DrevoApp.completeOrder('${order.id}', 'almoxarifado')">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          Confirmar Entrega
+          Disponível no Almoxarifado
+        </button>
+        <button class="btn-card-action btn-card-sync" style="background: rgba(25, 111, 151, 0.1); color: var(--sync-teal); border-color: rgba(25, 111, 151, 0.25);" onclick="event.stopPropagation(); DrevoApp.completeOrder('${order.id}', 'obra')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Entregue na Obra
         </button>
       `;
     }
@@ -822,18 +834,23 @@ const DrevoApp = {
   },
 
   // Marcar como entregue localmente e na Planilha (gatilho de estoque no Almoxarifado!)
-  async completeOrder(orderId) {
+  async completeOrder(orderId, destination) {
     const order = this.orders.find(o => o.id === orderId);
     if (order) {
+      const isObra = destination === 'obra';
+      const statusKey = isObra ? 'done_obra' : 'done';
+      const logMsg = isObra ? 'Material entregue na obra destino.' : 'Material recebido no Almoxarifado.';
+      const toastMsg = isObra ? `Pedido ${orderId} entregue na obra!` : `Pedido ${orderId} disponível no Almoxarifado!`;
+
       // Registrar log de entrega
       const now = new Date();
       const formattedDate = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
       if (!order.logs) order.logs = [];
-      order.logs.push({ action: 'done', message: 'Material recebido no Almoxarifado.', date: formattedDate });
+      order.logs.push({ action: statusKey, message: logMsg, date: formattedDate });
 
-      order.status = 'done';
+      order.status = statusKey;
       this.saveOrders();
-      this.showToast(`Pedido ${orderId} entregue no Almoxarifado!`, 'success');
+      this.showToast(toastMsg, 'success');
       
       // Enviar alteração para o Google Sheets (acionará a inclusão automática no estoque)
       if (typeof API_URL !== 'undefined' && API_URL) {
@@ -845,7 +862,7 @@ const DrevoApp = {
             body: JSON.stringify({
               action: "AtualizarStatusPedido",
               id: orderId,
-              status: "done"
+              status: statusKey
             })
           });
         } catch (err) {
@@ -993,7 +1010,8 @@ const DrevoApp = {
       const norm = this.normalizeStatus(order.status);
       if (norm === 'approved') statusText = 'Aprovado pelo Gestor';
       else if (norm === 'synced') statusText = 'Comprado';
-      else if (norm === 'done') statusText = 'Recebido no Almoxarifado';
+      else if (norm === 'done') statusText = 'Disponível no Almoxarifado';
+      else if (norm === 'done_obra') statusText = 'Entregue na Obra';
       else if (norm === 'rejected') statusText = 'Pedido Recusado';
       
       // Prioridade formatada para exibição

@@ -82,8 +82,11 @@ const DrevoApp = {
     this.kpiApprovedCount = document.getElementById('approved-orders-count');
     this.kpiTopCostCenter = document.getElementById('top-cost-center');
     
-    // Novo Toggle Modo Gestor
-    this.chkSupervisor = document.getElementById('chk-supervisor');
+    // Modal de Senha
+    this.passwordOverlay = document.getElementById('password-overlay');
+    this.inputPassword = document.getElementById('input-password');
+    this.btnCancelPassword = document.getElementById('btn-cancel-password');
+    this.btnConfirmPassword = document.getElementById('btn-confirm-password');
     
     // Steppers Quantidade
     this.btnQtyMinus = document.getElementById('qty-minus');
@@ -113,7 +116,7 @@ const DrevoApp = {
   // Vinculação de Eventos
   bindEvents() {
     // Navegação
-    this.cardFp.addEventListener('click', () => this.navigateTo('screen-form'));
+    this.cardFp.addEventListener('click', () => this.promptPasswordForOrderCreation());
     this.cardCp.addEventListener('click', () => this.navigateTo('screen-tracking'));
     this.btnBackNav.addEventListener('click', () => this.navigateTo('screen-home'));
     this.navLogo.addEventListener('click', () => this.navigateTo('screen-home'));
@@ -154,10 +157,22 @@ const DrevoApp = {
       this.btnExportCSV.addEventListener('click', () => this.exportToCSV());
     }
 
-    // Evento de Alternância do Modo Gestor (Supervisor)
-    if (this.chkSupervisor) {
-      this.chkSupervisor.addEventListener('change', () => {
-        this.renderOrders();
+    // Eventos do Modal de Senha
+    if (this.btnCancelPassword) {
+      this.btnCancelPassword.addEventListener('click', () => {
+        this.passwordOverlay.classList.remove('active');
+      });
+    }
+
+    if (this.btnConfirmPassword) {
+      this.btnConfirmPassword.addEventListener('click', () => this.handlePasswordSubmit());
+    }
+
+    if (this.inputPassword) {
+      this.inputPassword.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') {
+          this.handlePasswordSubmit();
+        }
       });
     }
   },
@@ -464,7 +479,8 @@ const DrevoApp = {
       let passFilter = false;
       const normStatus = this.normalizeStatus(order.status);
       if (this.activeFilter === 'all') {
-        passFilter = true;
+        // Excluir pedidos concluídos (done) ou faturados (synced) da aba "Todos" para evitar poluição
+        passFilter = (normStatus !== 'done' && normStatus !== 'synced');
       } else if (this.activeFilter === 'pending') {
         passFilter = (normStatus === 'pending' || normStatus === 'approved');
       } else if (this.activeFilter === 'synced') {
@@ -689,11 +705,8 @@ const DrevoApp = {
     });
   },
 
-  // Renderizar os botões de ação dinâmicos do Card baseado no status atual e permissão
+  // Renderizar os botões de ação dinâmicos do Card baseado no status atual
   renderActionButtons(order) {
-    const isGestor = this.chkSupervisor && this.chkSupervisor.checked;
-    if (!isGestor) return '';
-
     const st = this.normalizeStatus(order.status);
     let buttons = '';
 
@@ -1052,6 +1065,28 @@ const DrevoApp = {
         }
       }
     }, 3000); // 3 segundos
+  },
+
+  // Exibir Modal de Senha para Fazer Pedido
+  promptPasswordForOrderCreation() {
+    if (this.passwordOverlay) {
+      this.inputPassword.value = '';
+      this.passwordOverlay.classList.add('active');
+      setTimeout(() => this.inputPassword.focus(), 50);
+    }
+  },
+
+  // Processar validação de senha corporativa
+  handlePasswordSubmit() {
+    const entered = this.inputPassword.value;
+    if (entered === 'drevo123') {
+      this.passwordOverlay.classList.remove('active');
+      this.navigateTo('screen-form');
+    } else {
+      this.showToast('Senha incorreta! Acesso negado.', 'error');
+      this.inputPassword.value = '';
+      this.inputPassword.focus();
+    }
   }
 };
 

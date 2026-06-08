@@ -73,6 +73,39 @@
         </div>
       </div>
 
+      <!-- Painel Operacional de Métricas Auxiliares (Novo!) -->
+      <div id="dashboard-operational-panel" class="glass-panel" style="margin-bottom: 2rem; padding: 1.5rem 2rem; background: rgba(255, 255, 255, 0.01); border-color: rgba(255, 255, 255, 0.03); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.06); width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--sync-red);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div>
+            <h3 style="font-size: 0.75rem; text-transform: uppercase; color: var(--neutral-400); font-weight: 600; letter-spacing: 0.05em; margin: 0;">Requisições Críticas</h3>
+            <p id="critical-orders-count" style="font-family: var(--font-serif); font-size: 1.3rem; font-weight: 700; color: var(--sync-white); margin: 0.1rem 0 0 0;">00</p>
+          </div>
+        </div>
+        
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.06); width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--status-approved-text);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div>
+            <h3 style="font-size: 0.75rem; text-transform: uppercase; color: var(--neutral-400); font-weight: 600; letter-spacing: 0.05em; margin: 0;">Pedidos Aprovados</h3>
+            <p id="approved-orders-count" style="font-family: var(--font-serif); font-size: 1.3rem; font-weight: 700; color: var(--sync-white); margin: 0.1rem 0 0 0;">00</p>
+          </div>
+        </div>
+        
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.06); width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--status-synced-text);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+          </div>
+          <div>
+            <h3 style="font-size: 0.75rem; text-transform: uppercase; color: var(--neutral-400); font-weight: 600; letter-spacing: 0.05em; margin: 0;">Setor Mais Ativo</h3>
+            <p id="top-cost-center" style="font-family: var(--font-serif); font-size: 1.1rem; font-weight: 700; color: var(--sync-white); margin: 0.1rem 0 0 0;">Carregando...</p>
+          </div>
+        </div>
+      </div>
+
       <!-- Botões de Ações Principais (FP e CP) baseados no rascunho do quadro -->
       <div class="action-cards-grid">
         <!-- FP: Fazer Pedido -->
@@ -148,8 +181,24 @@
             </div>
           </div>
 
+          <!-- Novo: Prioridade do Pedido -->
+          <div class="input-group">
+            <label for="select-priority" class="input-label">Prioridade / Urgência</label>
+            <select id="select-priority" class="input-field">
+              <option value="normal">Normal</option>
+              <option value="urgente">Urgente</option>
+              <option value="critico">Crítico (Obra Parada)</option>
+            </select>
+          </div>
+
+          <!-- 5. Marca de Preferência -->
+          <div class="input-group">
+            <label for="input-brand" class="input-label">Marca / Fabricante</label>
+            <input type="text" id="input-brand" class="input-field" placeholder="Digite a marca de preferência ou fabricante..." required>
+          </div>
+
           <!-- 4. Cor (Texto + Paleta de cores rápida) -->
-          <div class="input-group color-picker-box">
+          <div class="input-group color-picker-box form-col-full">
             <label for="input-color" class="input-label">Cor Especificada</label>
             <input type="text" id="input-color" class="input-field" placeholder="Digite a cor ou especificação de acabamento..." required>
             <!-- Seleção Visual de Cores Rápidas -->
@@ -162,12 +211,6 @@
               <span class="swatch" style="background-color: #f1c40f;" data-color="Amarelo" title="Amarelo"></span>
               <span class="swatch" style="background-color: #7f8c8d;" data-color="Cinza" title="Cinza"></span>
             </div>
-          </div>
-
-          <!-- 5. Marca de Preferência -->
-          <div class="input-group">
-            <label for="input-brand" class="input-label">Marca / Fabricante</label>
-            <input type="text" id="input-brand" class="input-field" placeholder="Digite a marca de preferência ou fabricante..." required>
           </div>
 
           <!-- 6. Centro de Resultado (Centro de Custo) -->
@@ -212,12 +255,23 @@
       
       <div class="glass-panel">
         <span class="screen-tag">Painel de Acompanhamento</span>
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.8rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.2rem; margin-bottom: 1.8rem;">
           <h1 class="screen-title" style="margin-bottom: 0;">Controle de Pedidos</h1>
-          <button id="btn-export-csv" class="btn-card-action btn-card-sync" style="background: rgba(46, 204, 113, 0.1); color: var(--status-done-text); border-color: var(--status-done-border); padding: 0.7rem 1.2rem; font-size: 0.75rem;" title="Exportar pedidos para Excel (CSV)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Exportar Planilha
-          </button>
+          <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+            <!-- Interruptor do Modo Gestor -->
+            <div class="supervisor-toggle-box" style="display: flex; align-items: center; gap: 0.6rem;">
+              <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--neutral-400); letter-spacing: 0.05em; user-select: none;">Modo Gestor</span>
+              <label class="switch-toggle" style="position: relative; display: inline-block; width: 44px; height: 22px;">
+                <input type="checkbox" id="chk-supervisor" style="opacity: 0; width: 0; height: 0;">
+                <span class="switch-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); transition: .3s; border-radius: 34px;"></span>
+              </label>
+            </div>
+            <!-- Botão Exportar -->
+            <button id="btn-export-csv" class="btn-card-action btn-card-sync" style="background: rgba(46, 204, 113, 0.1); color: var(--status-done-text); border-color: var(--status-done-border); padding: 0.7rem 1.2rem; font-size: 0.75rem;" title="Exportar pedidos para Excel (CSV)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exportar Planilha
+            </button>
+          </div>
         </div>
         
         <!-- Barra de Filtros e Busca -->

@@ -1564,3 +1564,159 @@ body::after {
   }
 }
 
+/* ==========================================================================
+   APRIMORAMENTOS DE PRIORIDADE, GESTÃO E TIMELINE DE LOGS (PREMIUM)
+   ========================================================================== */
+/* Badges de Prioridade */
+.priority-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.8rem;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+.priority-normal {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--neutral-400);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.priority-urgente {
+  background: rgba(243, 156, 18, 0.12);
+  color: #f39c12;
+  border: 1px solid rgba(243, 156, 18, 0.3);
+}
+
+.priority-critico {
+  background: rgba(229, 0, 0, 0.15);
+  color: #ff4d4d;
+  border: 1px solid rgba(229, 0, 0, 0.35);
+  animation: border-glow-critico 1.5s infinite alternate ease-in-out;
+}
+
+@keyframes border-glow-critico {
+  0% { box-shadow: 0 0 2px rgba(229, 0, 0, 0.1); }
+  100% { box-shadow: 0 0 8px rgba(229, 0, 0, 0.45); }
+}
+
+/* Interruptor do Modo Gestor (Slide Toggle) */
+.switch-slider::before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: var(--neutral-400);
+  transition: .3s var(--ease-out-expo);
+  border-radius: 50%;
+}
+
+.switch-toggle input:checked + .switch-slider {
+  background-color: var(--sync-red) !important;
+  border-color: var(--sync-red) !important;
+  box-shadow: 0 0 10px rgba(229, 0, 0, 0.4);
+}
+
+.switch-toggle input:checked + .switch-slider::before {
+  transform: translateX(22px);
+  background-color: var(--sync-white) !important;
+}
+
+/* Timeline Secundária dos Logs de Atividades */
+.timeline-log-box {
+  margin-top: 1.8rem;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  padding: 1.2rem;
+}
+
+.log-timeline-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  position: relative;
+  padding-left: 1.2rem;
+  margin-top: 0.5rem;
+}
+
+.log-timeline-container::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 5px;
+  bottom: 5px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.log-timeline-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8rem;
+}
+
+.log-timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -18px;
+  top: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--neutral-500);
+  border: 1.5px solid var(--neutral-900);
+}
+
+.log-timeline-item.success::before {
+  background: var(--status-done-text);
+  box-shadow: 0 0 6px var(--status-done-text);
+}
+
+.log-timeline-item.pending::before {
+  background: var(--status-pending-text);
+}
+
+.log-timeline-item.approved::before {
+  background: var(--status-approved-text);
+}
+
+.log-timeline-item.synced::before {
+  background: var(--status-synced-text);
+}
+
+.log-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.log-title-text {
+  font-weight: 600;
+  color: var(--neutral-200);
+  font-size: 0.78rem;
+}
+
+.log-time-text {
+  font-size: 0.65rem;
+  color: var(--neutral-500);
+}
+
+.log-desc-text {
+  font-size: 0.7rem;
+  color: var(--neutral-400);
+  margin-top: 0.15rem;
+}
+
+

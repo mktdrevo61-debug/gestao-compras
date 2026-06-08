@@ -70,11 +70,20 @@ const DrevoApp = {
     this.inputItem = document.getElementById('input-item');
     this.selectUnit = document.getElementById('select-unit');
     this.inputQty = document.getElementById('input-qty');
+    this.selectPriority = document.getElementById('select-priority'); // Novo
     this.inputColor = document.getElementById('input-color');
     this.inputBrand = document.getElementById('input-brand');
     this.selectCostCenter = document.getElementById('select-costcenter');
     this.inputObra = document.getElementById('input-obra'); // Identificação da Obra
     this.btnCancelForm = document.getElementById('btn-cancel-form');
+    
+    // Novo Painel de Métricas do Dashboard
+    this.kpiCriticalCount = document.getElementById('critical-orders-count');
+    this.kpiApprovedCount = document.getElementById('approved-orders-count');
+    this.kpiTopCostCenter = document.getElementById('top-cost-center');
+    
+    // Novo Toggle Modo Gestor
+    this.chkSupervisor = document.getElementById('chk-supervisor');
     
     // Steppers Quantidade
     this.btnQtyMinus = document.getElementById('qty-minus');
@@ -143,6 +152,13 @@ const DrevoApp = {
     // Exportar Planilha
     if (this.btnExportCSV) {
       this.btnExportCSV.addEventListener('click', () => this.exportToCSV());
+    }
+
+    // Evento de Alternância do Modo Gestor (Supervisor)
+    if (this.chkSupervisor) {
+      this.chkSupervisor.addEventListener('change', () => {
+        this.renderOrders();
+      });
     }
   },
 
@@ -288,6 +304,39 @@ const DrevoApp = {
     } else {
       this.badgePendingCount.style.display = 'none';
     }
+
+    // --- NOVAS MÉTRICAS OPERACIONAIS DO DASHBOARD ---
+    const activeCritical = this.orders.filter(o => {
+      const norm = this.normalizeStatus(o.status);
+      return norm !== 'done' && norm !== 'rejected' && o.priority === 'critico';
+    }).length;
+
+    const approvedCount = this.orders.filter(o => {
+      const norm = this.normalizeStatus(o.status);
+      return norm === 'approved';
+    }).length;
+
+    const activeOrders = this.orders.filter(o => this.normalizeStatus(o.status) !== 'done');
+    let topCC = 'Nenhum';
+    if (activeOrders.length > 0) {
+      const ccCounts = {};
+      activeOrders.forEach(o => {
+        ccCounts[o.costCenter] = (ccCounts[o.costCenter] || 0) + 1;
+      });
+      let maxCC = '';
+      let maxCount = 0;
+      for (const cc in ccCounts) {
+        if (ccCounts[cc] > maxCount) {
+          maxCount = ccCounts[cc];
+          maxCC = cc;
+        }
+      }
+      topCC = maxCC || 'Nenhum';
+    }
+
+    if (this.kpiCriticalCount) this.kpiCriticalCount.textContent = String(activeCritical).padStart(2, '0');
+    if (this.kpiApprovedCount) this.kpiApprovedCount.textContent = String(approvedCount).padStart(2, '0');
+    if (this.kpiTopCostCenter) this.kpiTopCostCenter.textContent = topCC;
   },
 
   // Submissão do Formulário de Novo Pedido (FP)
@@ -298,6 +347,7 @@ const DrevoApp = {
     const item = this.inputItem.value.trim();
     const unit = this.selectUnit.value;
     const qty = parseInt(this.inputQty.value) || 1;
+    const priority = this.selectPriority ? this.selectPriority.value : 'normal'; // Novo
     const color = this.inputColor.value.trim() || 'Padrão';
     const brand = this.inputBrand.value.trim() || 'Sem preferência';
     const costCenter = this.selectCostCenter.value;
@@ -343,8 +393,12 @@ const DrevoApp = {
       brand,
       costCenter,
       obra,
+      priority, // Novo
       status: 'pending', // Inicia pendente de aprovação
-      date: formattedDate
+      date: formattedDate,
+      logs: [ // Novo
+        { action: 'pending', message: 'Pedido lançado no sistema por Colaborador.', date: formattedDate }
+      ]
     };
 
     // Tentar gravar na Planilha Google
@@ -359,7 +413,8 @@ const DrevoApp = {
           color,
           brand,
           costCenter,
-          obra
+          obra,
+          priority // Novo
         };
         
         await fetch(API_URL, {
@@ -387,6 +442,7 @@ const DrevoApp = {
     this.toggleObraField();
     document.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
     this.inputQty.value = 1;
+    if (this.selectPriority) this.selectPriority.value = 'normal'; // Novo
 
     // Restaurar Botão
     btnSubmit.disabled = false;
@@ -449,6 +505,23 @@ const DrevoApp = {
       card.className = 'order-card';
       card.id = `card-${order.id}`;
 
+      // Gerar logs padrões se o pedido antigo não possuir logs (retrocompatibilidade)
+      if (!order.logs) {
+        order.logs = [
+          { action: 'pending', message: 'Pedido lançado no sistema por Colaborador.', date: order.date }
+        ];
+        const oldSt = this.normalizeStatus(order.status);
+        if (oldSt === 'approved' || oldSt === 'synced' || oldSt === 'done') {
+          order.logs.push({ action: 'approved', message: 'Pedido aprovado pelo Gestor.', date: order.date });
+        }
+        if (oldSt === 'synced' || oldSt === 'done') {
+          order.logs.push({ action: 'synced', message: 'Compra faturada via ERP corporativo.', date: order.date });
+        }
+        if (oldSt === 'done') {
+          order.logs.push({ action: 'done', message: 'Material recebido no Almoxarifado.', date: order.date });
+        }
+      }
+
       // Obter textos de tradução e cores de status mapeados da Planilha
       let statusText = 'Aguardando Aprovação';
       let statusClass = 'status-pending';
@@ -481,6 +554,13 @@ const DrevoApp = {
       const node3Class = (st === 'synced' || st === 'done') ? (st === 'synced' ? 'active' : 'completed') : '';
       const node4Class = (st === 'done') ? 'active' : '';
 
+      // Prioridade formatada para exibição
+      const priorityLabel = {
+        'normal': 'Normal',
+        'urgente': 'Urgente',
+        'critico': 'Crítico'
+      }[order.priority || 'normal'] || 'Normal';
+
       // SVG Ícone Chevron
       const chevronSvg = `<svg class="card-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
 
@@ -489,6 +569,7 @@ const DrevoApp = {
           <div class="order-meta-info">
             <div class="order-id-row">
               <span class="order-id">${order.id}</span>
+              <span class="priority-badge priority-${order.priority || 'normal'}">${priorityLabel}</span>
               <span class="order-date">${order.date}</span>
             </div>
             <h3 class="order-item-title">${order.item}</h3>
@@ -571,6 +652,31 @@ const DrevoApp = {
               </div>
             </div>
 
+            <!-- TIMELINE SECUNDÁRIA DE LOGS DE ATIVIDADE -->
+            <div class="timeline-log-box">
+              <div class="timeline-title" style="margin-bottom: 0.8rem;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Histórico de Atividades
+              </div>
+              <div class="log-timeline-container">
+                ${(order.logs || []).map(log => {
+                  let logClass = 'pending';
+                  if (log.action === 'approved') logClass = 'approved';
+                  else if (log.action === 'synced') logClass = 'synced';
+                  else if (log.action === 'done') logClass = 'success';
+                  
+                  return `
+                    <div class="log-timeline-item ${logClass}">
+                      <div class="log-header-row">
+                        <span class="log-title-text">${log.message}</span>
+                        <span class="log-time-text">${log.date}</span>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+
             <div class="order-actions-row">
               ${this.renderActionButtons(order)}
             </div>
@@ -583,9 +689,46 @@ const DrevoApp = {
     });
   },
 
-  // Renderizar os botões de ação dinâmicos do Card baseado no status atual
+  // Renderizar os botões de ação dinâmicos do Card baseado no status atual e permissão
   renderActionButtons(order) {
-    return ''; // Foco puramente em Acompanhamento Visual de Status para o Colaborador
+    const isGestor = this.chkSupervisor && this.chkSupervisor.checked;
+    if (!isGestor) return '';
+
+    const st = this.normalizeStatus(order.status);
+    let buttons = '';
+
+    if (st === 'pending') {
+      buttons += `
+        <button class="btn-card-action btn-card-approve" onclick="event.stopPropagation(); DrevoApp.approveOrder('${order.id}')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Aprovar Pedido
+        </button>
+      `;
+    } else if (st === 'approved') {
+      buttons += `
+        <button class="btn-card-action btn-card-sync" onclick="event.stopPropagation(); DrevoApp.syncWithERP('${order.id}')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          Registrar Compra (ERP)
+        </button>
+      `;
+    } else if (st === 'synced') {
+      buttons += `
+        <button class="btn-card-action btn-card-approve" style="background: rgba(46, 204, 113, 0.1); color: var(--status-done-text); border-color: var(--status-done-border);" onclick="event.stopPropagation(); DrevoApp.completeOrder('${order.id}')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Confirmar Entrega
+        </button>
+      `;
+    }
+
+    // Botão de Excluir sempre disponível no Modo Gestor
+    buttons += `
+      <button class="btn-card-action btn-card-delete" onclick="event.stopPropagation(); DrevoApp.deleteOrder('${order.id}')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        Excluir
+      </button>
+    `;
+
+    return buttons;
   },
 
   // Retorna o Hexadecimal correspondente ao nome da cor para visualização
@@ -628,6 +771,12 @@ const DrevoApp = {
   async approveOrder(orderId) {
     const order = this.orders.find(o => o.id === orderId);
     if (order) {
+      // Registrar log de aprovação
+      const now = new Date();
+      const formattedDate = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      if (!order.logs) order.logs = [];
+      order.logs.push({ action: 'approved', message: 'Pedido aprovado pelo Gestor.', date: formattedDate });
+
       order.status = 'approved';
       this.saveOrders();
       this.showToast(`Pedido ${orderId} aprovado com sucesso!`, 'success');
@@ -663,6 +812,12 @@ const DrevoApp = {
   async completeOrder(orderId) {
     const order = this.orders.find(o => o.id === orderId);
     if (order) {
+      // Registrar log de entrega
+      const now = new Date();
+      const formattedDate = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      if (!order.logs) order.logs = [];
+      order.logs.push({ action: 'done', message: 'Material recebido no Almoxarifado.', date: formattedDate });
+
       order.status = 'done';
       this.saveOrders();
       this.showToast(`Pedido ${orderId} entregue no Almoxarifado!`, 'success');
@@ -741,6 +896,12 @@ const DrevoApp = {
 
     // Finalizar simulação de sincronismo enviando dados reais à planilha
     setTimeout(async () => {
+      // Registrar log de faturamento ERP
+      const now = new Date();
+      const formattedDate = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      if (!order.logs) order.logs = [];
+      order.logs.push({ action: 'synced', message: 'Compra faturada via ERP corporativo.', date: formattedDate });
+
       // Atualizar status no banco local
       order.status = 'synced'; // mantém chave synced interna para compatibilidade de estilos
       this.saveOrders();
@@ -812,7 +973,7 @@ const DrevoApp = {
     
     // Cabeçalho do CSV com BOM UTF-8 (\uFEFF) para garantir caracteres e acentuação no Excel
     let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-    csvContent += "ID;Data;Item;Unidade;Quantidade;Cor;Marca;Centro de Resultado;Obra;Status\r\n";
+    csvContent += "ID;Data;Item;Unidade;Quantidade;Prioridade;Cor;Marca;Centro de Resultado;Obra;Status\r\n";
     
     this.orders.forEach(order => {
       let statusText = 'Pendente de Aprovação';
@@ -822,13 +983,20 @@ const DrevoApp = {
       else if (norm === 'done') statusText = 'Recebido no Almoxarifado';
       else if (norm === 'rejected') statusText = 'Pedido Recusado';
       
+      // Prioridade formatada para exibição
+      const priorityText = {
+        'normal': 'Normal',
+        'urgente': 'Urgente',
+        'critico': 'Crítico'
+      }[order.priority || 'normal'] || 'Normal';
+      
       // Sanitização de ponto e vírgula caso o usuário tenha digitado nos campos
       const itemEscaped = order.item.replace(/;/g, ',');
       const brandEscaped = order.brand.replace(/;/g, ',');
       const colorEscaped = order.color.replace(/;/g, ',');
       const obraEscaped = (order.obra || '').replace(/;/g, ',');
       
-      csvContent += `${order.id};${order.date};${itemEscaped};${order.unit};${order.qty};${colorEscaped};${brandEscaped};${order.costCenter};${obraEscaped};${statusText}\r\n`;
+      csvContent += `${order.id};${order.date};${itemEscaped};${order.unit};${order.qty};${priorityText};${colorEscaped};${brandEscaped};${order.costCenter};${obraEscaped};${statusText}\r\n`;
     });
     
     // Download invisível temporário no DOM

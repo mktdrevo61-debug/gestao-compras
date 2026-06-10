@@ -74,6 +74,7 @@ const DrevoApp = {
     this.selectPriority = document.getElementById('select-priority'); // Novo
     this.inputColor = document.getElementById('input-color');
     this.inputBrand = document.getElementById('input-brand');
+    this.inputRequester = document.getElementById('input-requester'); // Novo: Solicitante
     this.selectCostCenter = document.getElementById('select-costcenter');
     this.inputObra = document.getElementById('input-obra'); // Identificação da Obra
     this.btnCancelForm = document.getElementById('btn-cancel-form');
@@ -363,6 +364,7 @@ const DrevoApp = {
     e.preventDefault();
 
     // Obter Valores
+    const requester = this.inputRequester.value.trim(); // Novo
     const item = this.inputItem.value.trim();
     const unit = this.selectUnit.value;
     const qty = parseInt(this.inputQty.value) || 1;
@@ -373,6 +375,12 @@ const DrevoApp = {
     const obra = costCenter === 'Produção' ? this.inputObra.value.trim() : '';
 
     // Validação Simples
+    if (!requester) {
+      this.showToast('Por favor, informe seu nome como solicitante.', 'error');
+      this.inputRequester.focus();
+      return;
+    }
+
     if (!item) {
       this.showToast('Por favor, informe a descrição do item.', 'error');
       this.inputItem.focus();
@@ -413,10 +421,11 @@ const DrevoApp = {
       costCenter,
       obra,
       priority, // Novo
+      requester, // Novo
       status: 'pending', // Inicia pendente de aprovação
       date: formattedDate,
       logs: [ // Novo
-        { action: 'pending', message: 'Pedido lançado no sistema por Colaborador.', date: formattedDate }
+        { action: 'pending', message: `Pedido lançado no sistema por ${requester}.`, date: formattedDate }
       ]
     };
 
@@ -433,7 +442,8 @@ const DrevoApp = {
           brand,
           costCenter,
           obra,
-          priority // Novo
+          priority, // Novo
+          requester // Novo
         };
         
         await fetch(API_URL, {
@@ -528,7 +538,7 @@ const DrevoApp = {
       // Gerar logs padrões se o pedido antigo não possuir logs (retrocompatibilidade)
       if (!order.logs) {
         order.logs = [
-          { action: 'pending', message: 'Pedido lançado no sistema por Colaborador.', date: order.date }
+          { action: 'pending', message: `Pedido lançado no sistema por ${order.requester || 'Colaborador'}.`, date: order.date }
         ];
         const oldSt = this.normalizeStatus(order.status);
         if (oldSt === 'approved' || oldSt === 'synced' || oldSt === 'done' || oldSt === 'done_obra') {
@@ -607,6 +617,10 @@ const DrevoApp = {
           <div class="details-content">
             
             <div class="specs-grid">
+              <div class="spec-item">
+                <span class="spec-label">Solicitante</span>
+                <span class="spec-val" style="font-weight: 600; color: var(--sync-white);">${order.requester || 'Não informado'}</span>
+              </div>
               <div class="spec-item">
                 <span class="spec-label">Quantidade</span>
                 <span class="spec-val">${order.qty} ${order.unit}(s)</span>
@@ -1003,7 +1017,7 @@ const DrevoApp = {
     
     // Cabeçalho do CSV com BOM UTF-8 (\uFEFF) para garantir caracteres e acentuação no Excel
     let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-    csvContent += "ID;Data;Item;Unidade;Quantidade;Prioridade;Cor;Marca;Centro de Resultado;Obra;Status\r\n";
+    csvContent += "ID;Data;Solicitante;Item;Unidade;Quantidade;Prioridade;Cor;Marca;Centro de Resultado;Obra;Status\r\n";
     
     this.orders.forEach(order => {
       let statusText = 'Pendente de Aprovação';
@@ -1022,12 +1036,13 @@ const DrevoApp = {
       }[order.priority || 'normal'] || 'Normal';
       
       // Sanitização de ponto e vírgula caso o usuário tenha digitado nos campos
+      const requesterEscaped = (order.requester || 'Não informado').replace(/;/g, ',');
       const itemEscaped = order.item.replace(/;/g, ',');
       const brandEscaped = order.brand.replace(/;/g, ',');
       const colorEscaped = order.color.replace(/;/g, ',');
       const obraEscaped = (order.obra || '').replace(/;/g, ',');
       
-      csvContent += `${order.id};${order.date};${itemEscaped};${order.unit};${order.qty};${priorityText};${colorEscaped};${brandEscaped};${order.costCenter};${obraEscaped};${statusText}\r\n`;
+      csvContent += `${order.id};${order.date};${requesterEscaped};${itemEscaped};${order.unit};${order.qty};${priorityText};${colorEscaped};${brandEscaped};${order.costCenter};${obraEscaped};${statusText}\r\n`;
     });
     
     // Download invisível temporário no DOM

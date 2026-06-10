@@ -17,6 +17,11 @@ webpush.setVapidDetails(
   PRIVATE_KEY
 );
 
+// Rota da Página Inicial (Status)
+app.get('/', (req, res) => {
+  res.send('<h1>DREVO — Servidor de Web Push Ativo</h1><p>Este é o microsserviço de notificações do app de compras.</p>');
+});
+
 // Rota de Teste de Saúde
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Servidor de Notificações Drevo ativo!' });

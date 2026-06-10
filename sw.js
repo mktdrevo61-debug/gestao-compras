@@ -1,5 +1,5 @@
 // sw.js - Service Worker simples para PWA Drevo Gestão de Compras
-const CACHE_NAME = 'drevo-compras-v2';
+const CACHE_NAME = 'drevo-compras-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -80,26 +80,34 @@ self.addEventListener('notificationclick', (e) => {
 
 // Evento de recebimento de Web Push offline (segundo plano)
 self.addEventListener('push', (e) => {
-  let data = { title: 'DREVO — Gestão de Compras', body: 'Atualização no seu pedido' };
+  // Variáveis padrão vazias (serão substituídas pelos dados dinâmicos do pedido)
+  let notificationTitle = 'Nova Atualização';
+  let notificationBody = 'Verifique o status do pedido.';
+  let notificationTag = 'general';
   
   if (e.data) {
     try {
-      data = e.data.json();
+      // Aqui o app puxa as VARIÁVEIS dinâmicas (Item, Status, ID) enviadas pelo Apps Script
+      const jsonData = e.data.json();
+      if (jsonData.title) notificationTitle = jsonData.title;
+      if (jsonData.body) notificationBody = jsonData.body;
+      if (jsonData.tag) notificationTag = jsonData.tag;
     } catch (err) {
-      data = { title: 'DREVO — Gestão de Compras', body: e.data.text() };
+      // Se não for JSON, lê como texto puro
+      notificationBody = e.data.text();
     }
   }
   
   const options = {
-    body: data.body,
+    body: notificationBody,
     icon: 'assets/favicon-192.png',
     badge: 'assets/favicon-192.png',
-    tag: data.tag || 'general',
+    tag: notificationTag,
     vibrate: [200, 100, 200],
     requireInteraction: true
   };
   
   e.waitUntil(
-    self.registration.showNotification(data.title, options)
+    self.registration.showNotification(notificationTitle, options)
   );
 });

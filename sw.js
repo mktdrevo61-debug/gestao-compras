@@ -57,3 +57,23 @@ self.addEventListener('fetch', (e) => {
     );
   }
 });
+
+// Evento de clique na notificação para focar/abrir o aplicativo PWA
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Se a página já estiver aberta, foca nela
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // Se não estiver aberta, abre uma nova janela
+      if (clients.openWindow) {
+        return clients.openWindow('./');
+      }
+    })
+  );
+});

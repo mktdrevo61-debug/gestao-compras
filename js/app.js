@@ -31,6 +31,7 @@ const DrevoApp = {
     this.bindEvents();
     this.toggleObraField(); // Configura estado inicial da Obra
     this.registerServiceWorker(); // Ativa PWA
+    this.requestNotificationPermission(); // Nova permissão de notificação
     await this.loadOrders();
     this.renderKPIs();
     this.renderOrders();
@@ -380,6 +381,9 @@ const DrevoApp = {
       this.inputRequester.focus();
       return;
     }
+
+    // Salvar o nome do solicitante localmente para identificar o usuário deste dispositivo
+    localStorage.setItem('drevo_last_requester', requester);
 
     if (!item) {
       this.showToast('Por favor, informe a descrição do item.', 'error');
@@ -1065,8 +1069,8 @@ const DrevoApp = {
       const activeScreen = document.querySelector('.app-screen.active');
       if (activeScreen && (activeScreen.id === 'screen-tracking' || activeScreen.id === 'screen-home')) {
         
-        // Serializa a lista atual de pedidos para detectar alterações de status ou novas inclusões
-        const oldOrdersStr = JSON.stringify(this.orders);
+        // Guardar uma cópia profunda dos pedidos atuais antes de recarregar para monitorar transição de status
+        const previousOrders = JSON.parse(JSON.stringify(this.orders));
         
         // Se houver algum card expandido, guardamos o ID para preservá-lo caso ocorra alteração
         const expandedCard = document.querySelector('.order-card.expanded');
@@ -1074,6 +1078,24 @@ const DrevoApp = {
         
         await this.loadOrders();
         
+        // Comparar transições de status para notificação
+        previousOrders.forEach(oldOrder => {
+          const newOrder = this.orders.find(o => o.id === oldOrder.id);
+          if (newOrder) {
+            const oldStatus = this.normalizeStatus(oldOrder.status);
+            const newStatus = this.normalizeStatus(newOrder.status);
+            
+            // Transição de status para concluído/disponível/entregue
+            if (oldStatus !== newStatus && (newStatus === 'done' || newStatus === 'done_obra')) {
+              const currentUser = localStorage.getItem('drevo_last_requester') || '';
+              if (currentUser && newOrder.requester && newOrder.requester.toLowerCase().trim() === currentUser.toLowerCase().trim()) {
+                this.triggerPushNotification(newOrder);
+              }
+            }
+          }
+        });
+        
+        const oldOrdersStr = JSON.stringify(previousOrders);
         const newOrdersStr = JSON.stringify(this.orders);
         
         // SÓ atualiza a interface (DOM) se houver mudança real de dados vinda do Google Sheets
@@ -1119,6 +1141,49 @@ const DrevoApp = {
       this.showToast('Senha incorreta! Acesso negado.', 'error');
       this.inputPassword.value = '';
       this.inputPassword.focus();
+    }
+  },
+
+  // Solicitar permissão de notificações do navegador
+  requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+      // Solicita permissão ao primeiro clique do usuário na tela
+      const askPermission = () => {
+        Notification.requestPermission().then(permission => {
+          console.log('Permissão de Notificação:', permission);
+        });
+        document.removeEventListener('click', askPermission);
+      };
+      document.addEventListener('click', askPermission);
+    }
+  },
+
+  // Disparar notificação de Web Push local
+  triggerPushNotification(order) {
+    if (!('Notification' in window)) return;
+    
+    if (Notification.permission === 'granted') {
+      const title = `Compra Disponível! 📦`;
+      const statusText = order.status === 'done_obra' ? 'entregue na obra destino' : 'disponível no almoxarifado';
+      const body = `O pedido ${order.id} ("${order.item}") está ${statusText}.`;
+      
+      const options = {
+        body: body,
+        icon: 'assets/favicon-192.png',
+        badge: 'assets/favicon-192.png',
+        tag: order.id,
+        vibrate: [200, 100, 200],
+        requireInteraction: true
+      };
+      
+      // Tentar disparar via Service Worker para compatibilidade PWA e funcionamento em background
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then(registration => {
+          registration.showNotification(title, options);
+        });
+      } else {
+        new Notification(title, options);
+      }
     }
   }
 };

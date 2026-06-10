@@ -77,3 +77,29 @@ self.addEventListener('notificationclick', (e) => {
     })
   );
 });
+
+// Evento de recebimento de Web Push offline (segundo plano)
+self.addEventListener('push', (e) => {
+  let data = { title: 'DREVO — Gestão de Compras', body: 'Atualização no seu pedido' };
+  
+  if (e.data) {
+    try {
+      data = e.data.json();
+    } catch (err) {
+      data = { title: 'DREVO — Gestão de Compras', body: e.data.text() };
+    }
+  }
+  
+  const options = {
+    body: data.body,
+    icon: 'assets/favicon-192.png',
+    badge: 'assets/favicon-192.png',
+    tag: data.tag || 'general',
+    vibrate: [200, 100, 200],
+    requireInteraction: true
+  };
+  
+  e.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});

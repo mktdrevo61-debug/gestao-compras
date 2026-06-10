@@ -32,6 +32,10 @@ const DrevoApp = {
     this.toggleObraField(); // Configura estado inicial da Obra
     this.registerServiceWorker(); // Ativa PWA
     this.requestNotificationPermission(); // Nova permissão de notificação
+    const savedUser = localStorage.getItem('drevo_last_requester');
+    if (savedUser && 'Notification' in window && Notification.permission === 'granted') {
+      this.subscribeUserToPush(savedUser);
+    }
     await this.loadOrders();
     this.renderKPIs();
     this.renderOrders();
@@ -384,6 +388,9 @@ const DrevoApp = {
 
     // Salvar o nome do solicitante localmente para identificar o usuário deste dispositivo
     localStorage.setItem('drevo_last_requester', requester);
+    if ('Notification' in window && Notification.permission === 'granted') {
+      this.subscribeUserToPush(requester);
+    }
 
     if (!item) {
       this.showToast('Por favor, informe a descrição do item.', 'error');
@@ -1078,23 +1085,6 @@ const DrevoApp = {
         
         await this.loadOrders();
         
-        // Comparar transições de status para notificação
-        previousOrders.forEach(oldOrder => {
-          const newOrder = this.orders.find(o => o.id === oldOrder.id);
-          if (newOrder) {
-            const oldStatus = this.normalizeStatus(oldOrder.status);
-            const newStatus = this.normalizeStatus(newOrder.status);
-            
-            // Transição de status para concluído/disponível/entregue
-            if (oldStatus !== newStatus && (newStatus === 'done' || newStatus === 'done_obra')) {
-              const currentUser = localStorage.getItem('drevo_last_requester') || '';
-              if (currentUser && newOrder.requester && newOrder.requester.toLowerCase().trim() === currentUser.toLowerCase().trim()) {
-                this.triggerPushNotification(newOrder);
-              }
-            }
-          }
-        });
-        
         const oldOrdersStr = JSON.stringify(previousOrders);
         const newOrdersStr = JSON.stringify(this.orders);
         
@@ -1185,6 +1175,72 @@ const DrevoApp = {
         new Notification(title, options);
       }
     }
+  },
+
+  // Inscrever o usuário nas notificações Push reais do PWA
+  subscribeUserToPush(requester) {
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      navigator.serviceWorker.ready.then(async (registration) => {
+        try {
+          // Chave VAPID pública gerada (deve coincidir com a do servidor de relay)
+          const publicVapidKey = "BI22n1UHfFpopcHR-ukPVuTBiansu3fYUHvbBCHobYO5Ektm0VvjjJIuJKT4x9mLaIwu4cih2d25m_ebCVMRYY4";
+          const convertedVapidKey = this.urlBase64ToUint8Array(publicVapidKey);
+          
+          // Verifica se já existe uma assinatura ativa
+          let subscription = await registration.pushManager.getSubscription();
+          
+          if (!subscription) {
+            // Inscreve no servidor Push do navegador
+            subscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: convertedVapidKey
+            });
+          }
+          
+          // Envia as credenciais de push e o nome do solicitante para a planilha Google
+          await this.savePushSubscriptionOnSheets(subscription, requester);
+        } catch (error) {
+          console.warn("Não foi possível registrar o Web Push offline:", error);
+        }
+      });
+    }
+  },
+
+  // Mapear assinatura push para gravação na planilha Google
+  async savePushSubscriptionOnSheets(subscription, requester) {
+    if (typeof API_URL !== 'undefined' && API_URL) {
+      try {
+        await fetch(API_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: "SalvarAssinatura",
+            requester: requester,
+            subscription: JSON.stringify(subscription)
+          })
+        });
+        console.log("Assinatura de Web Push salva com sucesso no Sheets.");
+      } catch (err) {
+        console.error("Erro ao sincronizar assinatura push:", err);
+      }
+    }
+  },
+
+  // Utilitário para conversão da chave pública VAPID
+  urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+      .replace(/\-/g, '+')
+      .replace(/_/g, '/');
+    
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
   }
 };
 

@@ -80,7 +80,7 @@ self.addEventListener('notificationclick', (e) => {
 
 // Evento de recebimento de Web Push offline (segundo plano)
 self.addEventListener('push', (e) => {
-  let data = { title: 'DREVO — Gestão de Compras', body: 'Atualização teste no seu pedido' };
+  let data = { title: 'DREVO — Gestão de Compras', body: 'Atualização no seu pedido' };
   
   if (e.data) {
     try {

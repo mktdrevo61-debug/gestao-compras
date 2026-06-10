@@ -877,7 +877,7 @@ const DrevoApp = {
       this.saveOrders();
       this.showToast(toastMsg, 'success');
       
-      // Enviar alteração para o Google Sheets (acionará a inclusão automática no estoque)
+      // 1. Atualizar status na planilha Google Sheets
       if (typeof API_URL !== 'undefined' && API_URL) {
         try {
           await fetch(API_URL, {
@@ -893,6 +893,25 @@ const DrevoApp = {
         } catch (err) {
           console.error("Erro ao sincronizar entrega na planilha:", err);
         }
+      }
+
+      // 2. Notificar TODOS diretamente pelo servidor Render
+      try {
+        const RELAY_URL = "https://gestao-compras-push-relay.onrender.com";
+        const statusMsg = isObra ? 'entregue na obra' : 'disponível no almoxarifado';
+        const requesterName = this.currentUser || 'Equipe';
+        await fetch(`${RELAY_URL}/notify-all`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: 'Compra Disponível! 📦',
+            body: `Pedido ${orderId} — "${order.item}" está ${statusMsg}.`,
+            tag: orderId
+          })
+        });
+        console.log("Notificação enviada para todos os usuários.");
+      } catch (err) {
+        console.warn("Não foi possível enviar notificação push:", err);
       }
       
       this.renderKPIs();
@@ -1206,8 +1225,23 @@ const DrevoApp = {
     }
   },
 
-  // Mapear assinatura push para gravação na planilha Google
+  // Mapear assinatura push para gravação na planilha Google E no servidor Render
   async savePushSubscriptionOnSheets(subscription, requester) {
+    const RELAY_URL = "https://gestao-compras-push-relay.onrender.com";
+
+    // 1. Salva no servidor Render (para notificações diretas)
+    try {
+      await fetch(`${RELAY_URL}/save-subscription`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requester, subscription })
+      });
+      console.log("Assinatura salva no servidor Render.");
+    } catch (err) {
+      console.warn("Não foi possível salvar no Render:", err);
+    }
+
+    // 2. Salva na planilha (backup)
     if (typeof API_URL !== 'undefined' && API_URL) {
       try {
         await fetch(API_URL, {
@@ -1220,9 +1254,8 @@ const DrevoApp = {
             subscription: JSON.stringify(subscription)
           })
         });
-        console.log("Assinatura de Web Push salva com sucesso no Sheets.");
       } catch (err) {
-        console.error("Erro ao sincronizar assinatura push:", err);
+        console.error("Erro ao sincronizar assinatura push no Sheets:", err);
       }
     }
   },

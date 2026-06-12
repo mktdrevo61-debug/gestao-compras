@@ -1,5 +1,5 @@
 // sw.js - Service Worker simples para PWA Drevo Gestão de Compras
-const CACHE_NAME = 'drevo-compras-v4';
+const CACHE_NAME = 'drevo-compras-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -7,7 +7,9 @@ const ASSETS = [
   './js/app.js',
   './manifest.json',
   './assets/logo.png',
-  './assets/favicon.png'
+  './assets/favicon.png',
+  './assets/favicon-192.png',
+  './assets/favicon-512.png'
 ];
 
 // Instalação do Service Worker e cache dos recursos essenciais
@@ -98,8 +100,8 @@ self.addEventListener('push', (e) => {
   
   const options = {
     body: notificationBody,
-    icon: 'assets/favicon.png',
-    badge: 'assets/favicon.png',
+    icon: 'assets/favicon-192.png',
+    badge: 'assets/favicon-192.png',
     tag: notificationTag,
     vibrate: [200, 100, 200],
     requireInteraction: true

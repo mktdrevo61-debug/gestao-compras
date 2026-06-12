@@ -3,7 +3,7 @@
   "name": "Drevo - Gestão de Compras",
   "icons": [
     {
-      "src": "assets/favicon.png",
+      "src": "assets/favicon.png?v=2",
       "type": "image/png",
       "sizes": "192x192 512x512",
       "purpose": "any maskable"

@@ -546,6 +546,23 @@ const DrevoApp = {
       card.className = 'order-card';
       card.id = `card-${order.id}`;
 
+      // Função auxiliar para gerar datas fictícias progressivas em caso de fallback
+      const parseAndAddHours = (dateStr, hoursToAdd) => {
+        try {
+          const parts = dateStr.split(' ');
+          if (parts.length !== 2) return dateStr;
+          const dParts = parts[0].split('/');
+          const tParts = parts[1].split(':');
+          if (dParts.length !== 3 || tParts.length !== 2) return dateStr;
+          
+          let dt = new Date(dParts[2], dParts[1] - 1, dParts[0], tParts[0], tParts[1]);
+          dt.setHours(dt.getHours() + hoursToAdd);
+          return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()} ${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
+        } catch(e) {
+          return dateStr;
+        }
+      };
+
       // Gerar logs padrões se o pedido antigo não possuir logs (retrocompatibilidade)
       if (!order.logs) {
         order.logs = [
@@ -553,14 +570,14 @@ const DrevoApp = {
         ];
         const oldSt = this.normalizeStatus(order.status);
         if (oldSt === 'approved' || oldSt === 'synced' || oldSt === 'done' || oldSt === 'done_obra') {
-          order.logs.push({ action: 'approved', message: 'Pedido aprovado pelo Gestor.', date: order.date });
+          order.logs.push({ action: 'approved', message: 'Pedido aprovado pelo Gestor.', date: order.dateApproved || parseAndAddHours(order.date, 2) });
         }
         if (oldSt === 'synced' || oldSt === 'done' || oldSt === 'done_obra') {
-          order.logs.push({ action: 'synced', message: 'Compra faturada via ERP corporativo.', date: order.date });
+          order.logs.push({ action: 'synced', message: 'Compra faturada via ERP corporativo.', date: order.dateSynced || parseAndAddHours(order.dateApproved || order.date, 4) });
         }
         if (oldSt === 'done' || oldSt === 'done_obra') {
           const logMsg = (oldSt === 'done_obra') ? 'Material entregue na obra destino.' : 'Material recebido no Almoxarifado.';
-          order.logs.push({ action: oldSt, message: logMsg, date: order.date });
+          order.logs.push({ action: oldSt, message: logMsg, date: order.dateDone || parseAndAddHours(order.dateSynced || order.date, 24) });
         }
       }
 
@@ -1089,46 +1106,49 @@ const DrevoApp = {
 
   // Configurar atualização automática em segundo plano (Auto-polling)
   setupAutoRefresh() {
-    // Atualiza os dados da planilha a cada 3 segundos em segundo plano de forma silenciosa
+    // Atualiza os dados da planilha a cada 15 segundos (tempo seguro para o Google Sheets)
     setInterval(async () => {
       // Apenas faz o fetch se estiver na tela de rastreamento ou na Home para atualizar KPIs
       const activeScreen = document.querySelector('.app-screen.active');
       if (activeScreen && (activeScreen.id === 'screen-tracking' || activeScreen.id === 'screen-home')) {
         
-        // Guardar uma cópia profunda dos pedidos atuais antes de recarregar para monitorar transição de status
-        const previousOrders = JSON.parse(JSON.stringify(this.orders));
-        
-        // Se houver algum card expandido, guardamos o ID para preservá-lo caso ocorra alteração
+        // Se houver algum card expandido, guardamos o ID
         const expandedCard = document.querySelector('.order-card.expanded');
         const expandedId = expandedCard ? expandedCard.id.replace('card-', '') : null;
-        
+
+        const previousOrders = JSON.parse(JSON.stringify(this.orders));
         await this.loadOrders();
         
-        const oldOrdersStr = JSON.stringify(previousOrders);
-        const newOrdersStr = JSON.stringify(this.orders);
+        const stripLogs = (ordersArr) => ordersArr.map(({logs, ...rest}) => rest);
+        const oldOrdersStr = JSON.stringify(stripLogs(previousOrders));
+        const newOrdersStr = JSON.stringify(stripLogs(this.orders));
         
-        // SÓ atualiza a interface (DOM) se houver mudança real de dados vinda do Google Sheets
+        // Atualiza a interface se houver mudança real
         if (oldOrdersStr !== newOrdersStr) {
           this.renderKPIs();
           this.renderOrders();
           
-          // Reabrir o card que estava aberto sem prejudicar a experiência do colaborador
+          // Reabrir instantaneamente o card que estava aberto sem piscar
           if (expandedId) {
             const cardToExpand = document.getElementById(`card-${expandedId}`);
             if (cardToExpand) {
               cardToExpand.classList.add('expanded');
               const details = cardToExpand.querySelector('.order-details-pane');
               if (details) {
-                // Pequeno atraso para garantir o fluxo de renderização do navegador e aplicar a animação
-                setTimeout(() => {
-                  details.style.maxHeight = details.scrollHeight + 'px';
-                }, 50);
+                // Desliga a animação, expande tudo, e liga a animação de novo (Zero flicker)
+                details.style.transition = 'none';
+                details.style.maxHeight = details.scrollHeight + 'px';
+                requestAnimationFrame(() => {
+                  requestAnimationFrame(() => {
+                    details.style.transition = '';
+                  });
+                });
               }
             }
           }
         }
       }
-    }, 3000); // 3 segundos
+    }, 15000); // 15 segundos
   },
 
   // Exibir Modal de Senha para Fazer Pedido

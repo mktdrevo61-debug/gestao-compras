@@ -367,6 +367,36 @@
   </footer>
 
   <!-- Scripts Oficiais da Aplicação -->
+  <!-- Firebase App (o núcleo) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <!-- Firebase Cloud Messaging -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js"></script>
+  <script>
+      const firebaseConfig = {
+          apiKey: "AIzaSyD_TaKudierPObWMsgmTJ9Cx4XdXLZ4meg",
+          authDomain: "drevo-compras.firebaseapp.com",
+          projectId: "drevo-compras",
+          storageBucket: "drevo-compras.firebasestorage.app",
+          messagingSenderId: "954205790898",
+          appId: "1:954205790898:web:fa632733b0468ea51d5fab"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const messaging = firebase.messaging();
+      
+      // Quando estiver com o app aberto e receber uma notificação
+      messaging.onMessage((payload) => {
+          console.log('[Foreground] Mensagem recebida: ', payload);
+          if (Notification.permission === 'granted') {
+              const title = payload.notification ? payload.notification.title : (payload.data ? payload.data.title : 'Drevo Compras');
+              const body = payload.notification ? payload.notification.body : (payload.data ? payload.data.body : 'Novo alerta');
+              new Notification(title, {
+                  body: body,
+                  icon: 'assets/favicon-192.png',
+                  requireInteraction: true
+              });
+          }
+      });
+  </script>
   <script src="js/app.js"></script>
 </body>
 </html>

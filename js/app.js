@@ -31,11 +31,6 @@ const DrevoApp = {
     this.bindEvents();
     this.toggleObraField(); // Configura estado inicial da Obra
     this.registerServiceWorker(); // Ativa PWA
-    this.requestNotificationPermission(); // Nova permissão de notificação
-    const savedUser = localStorage.getItem('drevo_last_requester');
-    if (savedUser && 'Notification' in window && Notification.permission === 'granted') {
-      this.subscribeUserToPush(savedUser);
-    }
     await this.loadOrders();
     this.renderKPIs();
     this.renderOrders();
@@ -388,9 +383,9 @@ const DrevoApp = {
 
     // Salvar o nome do solicitante localmente para identificar o usuário deste dispositivo
     localStorage.setItem('drevo_last_requester', requester);
-    if ('Notification' in window && Notification.permission === 'granted') {
-      this.subscribeUserToPush(requester);
-    }
+    
+    // Solicita permissão Push ao criar o pedido e já salva o token na planilha do Apps Script
+    this.requestPushPermission(requester);
 
     if (!item) {
       this.showToast('Por favor, informe a descrição do item.', 'error');
@@ -472,6 +467,9 @@ const DrevoApp = {
     } else {
       this.showToast(`Pedido ${newId} registrado offline!`, 'success');
     }
+
+    // Notificar Gestão via FCM
+    this.dispararPush(`Novo Pedido: ${newId}`, `${requester} solicitou ${qty}x ${item}`);
 
     // Adicionar no estado e salvar localmente
     this.orders.unshift(newOrder);
@@ -866,6 +864,9 @@ const DrevoApp = {
         }
       }
       
+      // Disparar notificação FCM
+      this.dispararPush('Pedido Aprovado! ✅', `O Gestor aprovou o pedido ${orderId} ("${order.item}").`);
+      
       // Renderizar novamente
       this.renderKPIs();
       this.renderOrders();
@@ -912,24 +913,9 @@ const DrevoApp = {
         }
       }
 
-      // 2. Notificar TODOS diretamente pelo servidor Render
-      try {
-        const RELAY_URL = "https://gestao-compras-push-relay.onrender.com";
-        const statusMsg = isObra ? 'entregue na obra' : 'disponível no almoxarifado';
-        const requesterName = this.currentUser || 'Equipe';
-        await fetch(`${RELAY_URL}/notify-all`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: 'Compra Disponível! 📦',
-            body: `Pedido ${orderId} — "${order.item}" está ${statusMsg}.`,
-            tag: orderId
-          })
-        });
-        console.log("Notificação enviada para todos os usuários.");
-      } catch (err) {
-        console.warn("Não foi possível enviar notificação push:", err);
-      }
+      // 2. Notificar TODOS diretamente via Firebase FCM (Google Apps Script)
+      const statusMsg = isObra ? 'entregue na obra destino' : 'disponível no almoxarifado';
+      this.dispararPush('Compra Disponível! 📦', `Pedido ${orderId} — "${order.item}" está ${statusMsg}.`);
       
       this.renderKPIs();
       this.renderOrders();
@@ -1015,11 +1001,13 @@ const DrevoApp = {
         }
       }
 
-      // Esconder overlay
       this.syncOverlay.classList.remove('active');
-
-      // Restaurar indicador do topo
+      
+      this.erpIndicatorText.classList.remove('error');
       this.erpIndicatorText.innerHTML = `<span class="status-dot"></span> ERP Conectado`;
+
+      // Dispara o Web Push automaticamente para a equipe via Google Apps Script
+      this.dispararPush(`Compra Aprovada! 📦`, `O pedido ${orderId} acaba de ser comprado pelo Gestor.`);
 
       // Toast de confirmação
       this.showToast(`Pedido ${orderId} marcado como Comprado!`, 'success');
@@ -1173,95 +1161,33 @@ const DrevoApp = {
     }
   },
 
-  // Solicitar permissão de notificações do navegador
-  requestNotificationPermission() {
-    if ('Notification' in window && Notification.permission === 'default') {
-      // Solicita permissão ao primeiro clique do usuário na tela
-      const askPermission = () => {
-        Notification.requestPermission().then(permission => {
-          console.log('Permissão de Notificação:', permission);
-        });
-        document.removeEventListener('click', askPermission);
-      };
-      document.addEventListener('click', askPermission);
-    }
-  },
+  // ============================================================
+  // FIREBASE E GOOGLE APPS SCRIPT INTEGRATION
+  // ============================================================
 
-  // Disparar notificação de Web Push local
-  triggerPushNotification(order) {
+  // Solicitar permissão FCM e salvar Token no Google Sheets
+  requestPushPermission(requesterName) {
     if (!('Notification' in window)) return;
     
-    if (Notification.permission === 'granted') {
-      const title = `Compra Disponível! 📦`;
-      const statusText = order.status === 'done_obra' ? 'entregue na obra destino' : 'disponível no almoxarifado';
-      const body = `O pedido ${order.id} ("${order.item}") está ${statusText}.`;
-      
-      const options = {
-        body: body,
-        icon: 'assets/favicon-192.png',
-        badge: 'assets/favicon-192.png',
-        tag: order.id,
-        vibrate: [200, 100, 200],
-        requireInteraction: true
-      };
-      
-      // Tentar disparar via Service Worker para compatibilidade PWA e funcionamento em background
-      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.ready.then(registration => {
-          registration.showNotification(title, options);
+    Notification.requestPermission().then((permission) => {
+      if (permission === 'granted') {
+        navigator.serviceWorker.ready.then((registration) => {
+          messaging.getToken({ 
+            vapidKey: "BHTZYE8DVO3ptxOEslYfXeBKG5IV4kXcy_waOCJN2Kc7uk4VGdxtdqvTA2hVKmA-d74R2ku9DjhldKnus6zBTU8",
+            serviceWorkerRegistration: registration
+          }).then((token) => {
+            if (token) {
+              console.log('✅ FCM Token Gerado: ', token);
+              this.salvarTokenNoAppsScript(token, requesterName);
+            }
+          }).catch((err) => console.log('Erro ao obter token FCM: ', err));
         });
-      } else {
-        new Notification(title, options);
       }
-    }
+    });
   },
 
-  // Inscrever o usuário nas notificações Push reais do PWA
-  subscribeUserToPush(requester) {
-    if ('serviceWorker' in navigator && 'PushManager' in window) {
-      navigator.serviceWorker.ready.then(async (registration) => {
-        try {
-          // Chave VAPID pública gerada (deve coincidir com a do servidor de relay)
-          const publicVapidKey = "BI22n1UHfFpopcHR-ukPVuTBiansu3fYUHvbBCHobYO5Ektm0VvjjJIuJKT4x9mLaIwu4cih2d25m_ebCVMRYY4";
-          const convertedVapidKey = this.urlBase64ToUint8Array(publicVapidKey);
-          
-          // Verifica se já existe uma assinatura ativa
-          let subscription = await registration.pushManager.getSubscription();
-          
-          if (!subscription) {
-            // Inscreve no servidor Push do navegador
-            subscription = await registration.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: convertedVapidKey
-            });
-          }
-          
-          // Envia as credenciais de push e o nome do solicitante para a planilha Google
-          await this.savePushSubscriptionOnSheets(subscription, requester);
-        } catch (error) {
-          console.warn("Não foi possível registrar o Web Push offline:", error);
-        }
-      });
-    }
-  },
-
-  // Mapear assinatura push para gravação na planilha Google E no servidor Render
-  async savePushSubscriptionOnSheets(subscription, requester) {
-    const RELAY_URL = "https://gestao-compras-push-relay.onrender.com";
-
-    // 1. Salva no servidor Render (para notificações diretas)
-    try {
-      await fetch(`${RELAY_URL}/save-subscription`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requester, subscription })
-      });
-      console.log("Assinatura salva no servidor Render.");
-    } catch (err) {
-      console.warn("Não foi possível salvar no Render:", err);
-    }
-
-    // 2. Salva na planilha (backup)
+  // Enviar Token para a aba "assinaturas" no Google Sheets via Apps Script
+  async salvarTokenNoAppsScript(token, requester) {
     if (typeof API_URL !== 'undefined' && API_URL) {
       try {
         await fetch(API_URL, {
@@ -1269,31 +1195,37 @@ const DrevoApp = {
           mode: 'no-cors',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({
-            action: "SalvarAssinatura",
-            requester: requester,
-            subscription: JSON.stringify(subscription)
+            action: "CadastrarTokenFCM",
+            token: token,
+            requester: requester
           })
         });
+        console.log("Token FCM enviado para o Google Apps Script.");
       } catch (err) {
-        console.error("Erro ao sincronizar assinatura push no Sheets:", err);
+        console.error("Erro ao sincronizar token FCM no Sheets:", err);
       }
     }
   },
 
-  // Utilitário para conversão da chave pública VAPID
-  urlBase64ToUint8Array(base64String) {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-      .replace(/\-/g, '+')
-      .replace(/_/g, '/');
-    
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-    
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
+  // Disparar uma notificação Push via Google Apps Script
+  async dispararPush(title, body) {
+    if (typeof API_URL !== 'undefined' && API_URL) {
+      try {
+        await fetch(API_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: "DispararPush",
+            title: title,
+            body: body
+          })
+        });
+        console.log("Comando de disparo enviado para o Apps Script.");
+      } catch (err) {
+        console.error("Erro ao enviar disparo Push:", err);
+      }
     }
-    return outputArray;
   }
 };
 

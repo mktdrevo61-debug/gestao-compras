@@ -389,10 +389,12 @@
           if (Notification.permission === 'granted') {
               const title = payload.notification ? payload.notification.title : (payload.data ? payload.data.title : 'Drevo Compras');
               const body = payload.notification ? payload.notification.body : (payload.data ? payload.data.body : 'Novo alerta');
-              new Notification(title, {
-                  body: body,
-                  icon: 'assets/favicon-192.png',
-                  requireInteraction: true
+              navigator.serviceWorker.ready.then(function(registration) {
+                  registration.showNotification(title, {
+                      body: body,
+                      icon: 'assets/favicon-192.png',
+                      requireInteraction: true
+                  });
               });
           }
       });

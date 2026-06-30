@@ -1162,26 +1162,42 @@ const DrevoApp = {
   },
 
   // ============================================================
-  // FIREBASE E GOOGLE APPS SCRIPT INTEGRATION
+  // FIREBASE E GOOGLE APPS SCRIPT INTEGRATION (AGORA COM ONESIGNAL)
   // ============================================================
 
-  // Solicitar permissão FCM e salvar Token no Google Sheets
+  // Solicitar permissão e salvar Token no Google Sheets
   requestPushPermission(requesterName) {
-    if (!('Notification' in window)) return;
+    if (!window.OneSignalDeferred) return;
     
-    Notification.requestPermission().then((permission) => {
-      if (permission === 'granted') {
-        navigator.serviceWorker.ready.then((registration) => {
-          messaging.getToken({ 
-            vapidKey: "BHTZYE8DVO3ptxOEslYfXeBKG5IV4kXcy_waOCJN2Kc7uk4VGdxtdqvTA2hVKmA-d74R2ku9DjhldKnus6zBTU8",
-            serviceWorkerRegistration: registration
-          }).then((token) => {
-            if (token) {
-              console.log('✅ FCM Token Gerado: ', token);
-              this.salvarTokenNoAppsScript(token, requesterName);
+    window.OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.Slidedown.promptPush();
+      
+      const subscription = OneSignal.User.PushSubscription.current;
+      if (subscription && subscription.optedIn) {
+        const token = subscription.id;
+        console.log('OneSignal Token Obtido manualmente: ', token);
+        // Só salva se houver requesterName válido para evitar salvar lixo
+        if (requesterName && requesterName.trim() !== '') {
+          // Precisamos acessar app.salvarTokenNoAppsScript, então chamaremos via window.app se não houver context
+          // ou enviamos um evento customizado. O mais seguro é disparar fetch direto aqui.
+          if (typeof API_URL !== 'undefined' && API_URL) {
+            try {
+              await fetch(API_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                  action: "CadastrarTokenFCM", // Mantém o nome da action para não quebrar o backend antigo
+                  token: token,
+                  requester: requesterName
+                })
+              });
+              console.log("Token OneSignal enviado para o Google Apps Script.");
+            } catch (err) {
+              console.error("Erro ao sincronizar token OneSignal no Sheets:", err);
             }
-          }).catch((err) => console.log('Erro ao obter token FCM: ', err));
-        });
+          }
+        }
       }
     });
   },

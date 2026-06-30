@@ -280,9 +280,9 @@ const DrevoApp = {
         const data = await res.json();
         
         if (data && data.orders) {
-          // Filtrar os pedidos retornados da planilha (os mais recentes primeiro no display)
-          this.orders = data.orders.reverse();
-          this.saveOrders(); // Sincronizar cache local
+            // Filtrar os pedidos vazios da planilha e os mais recentes primeiro no display
+            this.orders = data.orders.filter(o => o.id && o.id.trim() !== '' && o.item && o.item.trim() !== '').reverse();
+            this.saveOrders(); // Sincronizar cache local
           
           this.erpIndicatorText.innerHTML = `<span class="status-dot"></span> ERP Conectado`;
         }

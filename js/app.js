@@ -1170,7 +1170,8 @@ const DrevoApp = {
     if (!window.OneSignalDeferred) return;
     
     window.OneSignalDeferred.push(async function(OneSignal) {
-      await OneSignal.Slidedown.promptPush({ force: true });
+      // Força a exibição do prompt Nativo do Navegador (o mais garantido)
+      await OneSignal.User.PushSubscription.optIn();
       
       const subscription = OneSignal.User.PushSubscription.current;
       if (subscription && subscription.optedIn) {

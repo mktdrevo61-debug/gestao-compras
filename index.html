@@ -374,6 +374,8 @@
     OneSignalDeferred.push(async function(OneSignal) {
       await OneSignal.init({
         appId: "67dd13e3-3779-4d11-8d4f-b297892d6c1c",
+        serviceWorkerPath: "gestao-compras/OneSignalSDKWorker.js",
+        serviceWorkerParam: { scope: "/gestao-compras/" }
       });
       // Listener para enviar o PlayerID (Subscription ID) ao Apps Script quando o usuário aceitar
       OneSignal.User.PushSubscription.addEventListener("change", function(subscription) {

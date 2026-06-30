@@ -1167,16 +1167,20 @@ const DrevoApp = {
 
   // Solicitar permissão e salvar Token no Google Sheets
   requestPushPermission(requesterName) {
-    if (!window.OneSignalDeferred) return;
+    if (!window.OneSignalDeferred) {
+      alert("OneSignal não carregou a tempo!");
+      return;
+    }
     
     window.OneSignalDeferred.push(async function(OneSignal) {
-      // Força a exibição do prompt Nativo do Navegador (o mais garantido)
-      await OneSignal.User.PushSubscription.optIn();
-      
-      const subscription = OneSignal.User.PushSubscription.current;
-      if (subscription && subscription.optedIn) {
-        const token = subscription.id;
-        console.log('OneSignal Token Obtido manualmente: ', token);
+      try {
+        // Força a exibição do prompt Nativo do Navegador (o mais garantido)
+        await OneSignal.User.PushSubscription.optIn();
+        
+        const subscription = OneSignal.User.PushSubscription.current;
+        if (subscription && subscription.optedIn) {
+          const token = subscription.id;
+          console.log('OneSignal Token Obtido manualmente: ', token);
         // Só salva se houver requesterName válido para evitar salvar lixo
         if (requesterName && requesterName.trim() !== '') {
           // Precisamos acessar app.salvarTokenNoAppsScript, então chamaremos via window.app se não houver context
@@ -1199,6 +1203,9 @@ const DrevoApp = {
             }
           }
         }
+      } catch (err) {
+        alert("Erro no OneSignal: " + err);
+        console.error(err);
       }
     });
   },

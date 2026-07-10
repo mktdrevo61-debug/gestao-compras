@@ -49,7 +49,7 @@
   --status-done-border: rgba(46, 204, 113, 0.3);
   --status-done-text: #2ecc71;
 
-  /* Curva de AnimaÃ§Ã£o Premium e Fluida */
+  /* Curva de Animação Premium e Fluida */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --transition-smooth: all 0.5s var(--ease-out-expo);
   --transition-fast: all 0.2s ease;
@@ -79,7 +79,7 @@ body {
   line-height: 1.4;
   -webkit-font-smoothing: antialiased;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
 }
 
 /* Scrollbar Customizado Premium */
@@ -95,143 +95,70 @@ body {
   border-radius: 4px;
 }
 
-/* =========================================================
-   SIDEBAR (DESKTOP) E BOTTOM NAV (MOBILE)
-   ========================================================= */
-.sidebar {
-  width: 260px;
-  height: 100vh;
+
+/* Efeito de Névoa e Aurora Fluida em Movimento (Background) */
+body::before, body::after {
+  content: '';
+  position: fixed;
+  width: 60vw;
+  height: 60vw;
+  max-width: 800px;
+  max-height: 800px;
+  border-radius: 50%;
+  z-index: -1;
+  pointer-events: none;
+  filter: blur(120px);
+  mix-blend-mode: screen;
+}
+
+body::before {
+  top: 15%;
+  left: 10%;
+  background: radial-gradient(circle, rgba(157, 43, 82, 0.25) 0%, rgba(157, 43, 82, 0.05) 50%, rgba(0, 0, 0, 0) 100%);
+  animation: drift-left 25s infinite alternate ease-in-out;
+}
+
+body::after {
+  bottom: 15%;
+  right: 10%;
+  background: radial-gradient(circle, rgba(25, 111, 151, 0.25) 0%, rgba(25, 111, 151, 0.05) 50%, rgba(0, 0, 0, 0) 100%);
+  animation: drift-right 25s infinite alternate ease-in-out;
+}
+
+@keyframes drift-left {
+  0% { transform: translate(-10%, -10%) scale(1); }
+  50% { transform: translate(10%, 15%) scale(1.15); }
+  100% { transform: translate(-5%, 5%) scale(0.95); }
+}
+
+@keyframes drift-right {
+  0% { transform: translate(10%, 10%) scale(1); }
+  50% { transform: translate(-15%, -10%) scale(1.2); }
+  100% { transform: translate(5%, -5%) scale(0.9); }
+}
+
+/* Navegação Premium */
+.brand-nav {
   position: sticky;
   top: 0;
+  z-index: 1000;
   display: flex;
-  flex-direction: column;
-  background: rgba(10, 11, 14, 0.85);
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 1.5rem;
+  background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border-right: 1px solid var(--glass-border);
-  padding: 2rem 1.5rem;
-  z-index: 1000;
+  border-bottom: 0.5px solid var(--glass-border);
+  transition: var(--transition-smooth);
 }
 
-.nav-logo-box {
-  margin-bottom: 2.5rem;
-  display: flex;
-  justify-content: center;
-}
-
-.sidebar-logo {
-  height: 52px;
-  width: auto;
-  object-fit: contain;
-}
-
-.sidebar-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
-}
-
-.sidebar-nav-btn {
+.nav-left {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 0.9rem 1rem;
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--neutral-400);
-  border-radius: 12px;
-  cursor: pointer;
-  font-size: 0.95rem;
-  font-weight: 500;
-  transition: var(--transition-fast);
-  text-align: left;
 }
 
-.sidebar-nav-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--sync-white);
-}
-
-.sidebar-nav-btn.active {
-  background: rgba(229, 0, 0, 0.1);
-  border-color: rgba(229, 0, 0, 0.2);
-  color: var(--sync-red);
-}
-
-.sidebar-spacer {
-  flex: 1;
-}
-
-.sidebar-footer {
-  margin-top: auto;
-}
-
-/* Container Principal Ajustado */
-.app-container {
-  flex: 1;
-  width: 100%;
-  max-width: 100%;
-  padding-bottom: 2rem;
-}
-
-/* =========================================================
-   RESPONSIVO: BOTTOM NAV (INSTAGRAM STYLE)
-   ========================================================= */
-@media (max-width: 768px) {
-  body {
-    flex-direction: column;
-  }
-  
-  .sidebar {
-    width: 100%;
-    height: 75px;
-    position: fixed;
-    bottom: 0;
-    top: auto;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-around;
-    padding: 0 1rem;
-    padding-bottom: env(safe-area-inset-bottom);
-    border-right: none;
-    border-top: 1px solid var(--glass-border);
-    background: rgba(10, 11, 14, 0.98);
-  }
-  
-  .nav-logo-box, .sidebar-spacer, .sidebar-footer {
-    display: none;
-  }
-  
-  .sidebar-nav {
-    flex-direction: row;
-    width: 100%;
-    justify-content: space-around;
-    gap: 0;
-  }
-  
-  .sidebar-nav-btn {
-    flex-direction: column;
-    gap: 0.2rem;
-    padding: 0.5rem;
-    font-size: 0.7rem;
-    width: 80px;
-    align-items: center;
-    border: none !important;
-    background: transparent !important;
-  }
-  
-  .sidebar-nav-btn svg {
-    width: 24px;
-    height: 24px;
-  }
-  
-  .app-container {
-    padding-bottom: 90px;
-  }
-}
-
-/* --------------------------------------------------------- */
-/* Estilos Antigos do Botão Voltar (Movido para Form/Details)*/
 .btn-back-nav {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -315,7 +242,7 @@ body {
   100% { transform: scale(2.2); opacity: 0; }
 }
 
-/* Ãrea de ConteÃºdo Principal */
+/* Área de Conteúdo Principal */
 .app-container {
   flex-grow: 1;
   max-width: 1000px;
@@ -372,7 +299,7 @@ body {
   }
 }
 
-/* TÃ­tulos Globais de SeÃ§Ã£o */
+/* Títulos Globais de Seção */
 .screen-tag {
   font-size: 0.7rem;
   font-weight: 700;
@@ -500,7 +427,7 @@ body {
 .kpi-card.kpi-pending::after { background: var(--status-pending-text); }
 .kpi-card.kpi-synced::after { background: var(--status-synced-text); }
 
-/* Botoes de AÃ§Ã£o Principal (FP e CP) */
+/* Botoes de Ação Principal (FP e CP) */
 .action-cards-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -619,7 +546,7 @@ body {
 }
 
 /* ==========================================================================
-   TELA FORMULÃRIO (FAZER PEDIDO - FP)
+   TELA FORMULÁRIO (FAZER PEDIDO - FP)
    ========================================================================== */
 
 .form-layout {
@@ -750,7 +677,7 @@ body {
   margin: 0;
 }
 
-/* Seletor de Cores DinÃ¢mico */
+/* Seletor de Cores Dinâmico */
 .color-picker-box {
   display: flex;
   flex-direction: column;
@@ -784,7 +711,7 @@ body {
   box-shadow: 0 0 0 2px var(--sync-white), 0 0 8px rgba(255, 255, 255, 0.5);
 }
 
-/* Envio e RodapÃ© do Form */
+/* Envio e Rodapé do Form */
 .form-footer {
   margin-top: 2rem;
   display: flex;
@@ -955,7 +882,7 @@ body {
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
 }
 
-/* CabeÃ§alho do Card */
+/* Cabeçalho do Card */
 .order-header-main {
   padding: 1.4rem 1.8rem;
   display: flex;
@@ -1103,7 +1030,7 @@ body {
   }
 }
 
-/* EspecificaÃ§Ãµes Grid */
+/* Especificações Grid */
 .specs-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -1306,7 +1233,7 @@ body {
   margin-top: 0.15rem;
 }
 
-/* Painel de Controle de AÃ§Ã£o no Card */
+/* Painel de Controle de Ação no Card */
 .order-actions-row {
   display: flex;
   justify-content: flex-end;
@@ -1316,7 +1243,7 @@ body {
   padding-top: 1.2rem;
 }
 
-/* BotÃµes do Card */
+/* Botões do Card */
 .btn-card-action {
   padding: 0.55rem 1rem;
   border-radius: 6px;
@@ -1367,7 +1294,7 @@ body {
 }
 
 /* ==========================================================================
-   OVERLAY DE SINCRONIZAÃ‡ÃƒO ERP
+   OVERLAY DE SINCRONIZAÇÃO ERP
    ========================================================================== */
 
 .sync-overlay {
@@ -1490,7 +1417,7 @@ body {
   100% { opacity: 1; }
 }
 
-/* Toast NotificaÃ§Ã£o */
+/* Toast Notificação */
 .toast-msg {
   position: fixed;
   bottom: -100px;
@@ -1529,71 +1456,37 @@ body {
 .toast-icon-error { color: #e74c3c; }
 
 /* ==========================================================================
-   RODAPÉ (FOOTER)
+   RODAPÉ OFICIAL DREVO SYNC
    ========================================================================== */
 
 .brand-footer {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 4rem 2rem 3rem 2rem;
+  text-align: center;
+  padding: 3rem 1rem 2.5rem 1rem;
   border-top: 1px solid var(--glass-border);
-  background: transparent;
+  background: rgba(0, 0, 0, 0.8);
   position: relative;
   z-index: 10;
   margin-top: auto;
 }
-.footer-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.5rem;
-  text-align: center;
-  max-width: 600px;
+
+.footer-logo-box {
+  display: inline-block;
+  margin-bottom: 1rem;
 }
 
-.footer-logo {
-  height: 40px;
-  width: auto;
-  object-fit: contain;
-  opacity: 0.8;
-  filter: drop-shadow(0px 2px 8px rgba(0,0,0,0.5));
+.footer-text {
+  font-size: 0.75rem;
+  color: var(--neutral-500);
+  letter-spacing: 0.05rem;
 }
 
-.footer-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.footer-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--sync-white);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.footer-copyright {
-  font-size: 0.8rem;
-  color: var(--neutral-400);
-}
-
-.footer-tech {
-  font-size: 0.7rem;
-  color: var(--neutral-600);
-  opacity: 0.6;
-  margin-top: 0.5rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-/* UtilitÃ¡rios */
+/* Utilitários */
 .hidden {
   display: none !important;
 }
 
 /* ==========================================================================
-   OTIMIZAÃ‡Ã•ES DE RESPONSIVIDADE E ACESSIBILIDADE MOBILE (PREMIUM)
+   OTIMIZAÇÕES DE RESPONSIVIDADE E ACESSIBILIDADE MOBILE (PREMIUM)
    ========================================================================== */
 @media (max-width: 768px) {
   .welcome-title {
@@ -1624,7 +1517,7 @@ body {
     margin-bottom: 1.2rem;
   }
 
-  /* RodapÃ© do FormulÃ¡rio Empilhado para Melhor Clique (Acessibilidade) */
+  /* Rodapé do Formulário Empilhado para Melhor Clique (Acessibilidade) */
   .form-footer {
     flex-direction: column-reverse;
     gap: 0.8rem;
@@ -1632,10 +1525,10 @@ body {
   .form-footer .btn-form {
     width: 100%;
     justify-content: center;
-    padding: 1rem; /* BotÃ£o maior para fÃ¡cil toque */
+    padding: 1rem; /* Botão maior para fácil toque */
   }
 
-  /* BotÃµes de AÃ§Ã£o no Card do Pedido */
+  /* Botões de Ação no Card do Pedido */
   .order-actions-row {
     flex-wrap: wrap;
     justify-content: stretch;
@@ -1644,7 +1537,7 @@ body {
   .order-actions-row .btn-card-action {
     flex-grow: 1;
     justify-content: center;
-    padding: 0.8rem 1rem; /* Aumenta a Ã¡rea de toque */
+    padding: 0.8rem 1rem; /* Aumenta a área de toque */
   }
 }
 
@@ -1657,7 +1550,7 @@ body {
     height: 38px !important;
   }
 
-  /* Reduz espaÃ§o do indicador ERP para caber em telas estreitas */
+  /* Reduz espaço do indicador ERP para caber em telas estreitas */
   .erp-status-indicator {
     padding: 0.3rem 0.6rem;
   }
@@ -1676,7 +1569,7 @@ body {
     display: none;
   }
 
-  /* Padding menor no modal de SincronizaÃ§Ã£o ERP */
+  /* Padding menor no modal de Sincronização ERP */
   .sync-modal {
     padding: 1.8rem 1.2rem;
   }
@@ -1692,7 +1585,7 @@ body {
 }
 
 /* ==========================================================================
-   APRIMORAMENTOS DE PRIORIDADE, GESTÃƒO E TIMELINE DE LOGS (PREMIUM)
+   APRIMORAMENTOS DE PRIORIDADE, GESTÃO E TIMELINE DE LOGS (PREMIUM)
    ========================================================================== */
 /* Badges de Prioridade */
 .priority-badge {
@@ -1757,7 +1650,7 @@ body {
   background-color: var(--sync-white) !important;
 }
 
-/* Timeline SecundÃ¡ria dos Logs de Atividades */
+/* Timeline Secundária dos Logs de Atividades */
 .timeline-log-box {
   margin-top: 1.8rem;
   background: rgba(0, 0, 0, 0.25);
@@ -1928,129 +1821,6 @@ body {
   background: var(--sync-teal);
 }
 
-/* =========================================================
-   NOVA VERSÃO (V2): CHAT, SLA, BATCH
-   ========================================================= */
-
-/* Alertas SLA */
-.order-card.sla-warning {
-  border: 1px solid rgba(243, 156, 18, 0.6);
-  box-shadow: 0 0 15px rgba(243, 156, 18, 0.1);
-}
-.order-card.sla-critical {
-  border: 1px solid rgba(229, 0, 0, 0.6);
-  box-shadow: 0 0 15px rgba(229, 0, 0, 0.2);
-  animation: sla-pulse 2s infinite;
-}
-@keyframes sla-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(229, 0, 0, 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(229, 0, 0, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(229, 0, 0, 0); }
-}
-
-/* Checkbox para aprovação em lote */
-.mass-approve-checkbox {
-  width: 20px;
-  height: 20px;
-  margin-right: 15px;
-  cursor: pointer;
-  accent-color: var(--status-done-text);
-  transform: scale(1.1);
-}
-
-/* Mini-Chat */
-.order-chat-container {
-  margin-top: 1.5rem;
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 12px;
-  padding: 1rem;
-  border: 1px solid var(--glass-border);
-}
-.chat-messages {
-  max-height: 200px;
-  overflow-y: auto;
-  margin-bottom: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
-  padding-right: 5px;
-}
-.chat-message {
-  background: var(--neutral-800);
-  padding: 0.8rem 1rem;
-  border-radius: 12px;
-  border-bottom-left-radius: 2px;
-  position: relative;
-  align-self: flex-start;
-  max-width: 90%;
-}
-.chat-message.self {
-  background: rgba(52, 152, 219, 0.15);
-  border: 1px solid rgba(52, 152, 219, 0.3);
-  border-bottom-left-radius: 12px;
-  border-bottom-right-radius: 2px;
-  align-self: flex-end;
-}
-.chat-message-author {
-  font-size: 0.7rem;
-  color: var(--neutral-400);
-  margin-bottom: 0.2rem;
-  font-weight: 600;
-}
-.chat-message-text {
-  font-size: 0.85rem;
-  color: var(--sync-white);
-  line-height: 1.4;
-}
-.chat-message-time {
-  font-size: 0.65rem;
-  color: var(--neutral-500);
-  text-align: right;
-  margin-top: 0.3rem;
-  display: block;
-}
-.chat-input-row {
-  display: flex;
-  gap: 0.5rem;
-}
-.chat-input {
-  flex: 1;
-  background: var(--neutral-900);
-  border: 1px solid var(--neutral-700);
-  border-radius: 8px;
-  padding: 0.6rem 1rem;
-  color: var(--sync-white);
-  font-size: 0.85rem;
-}
-.btn-send-chat {
-  background: var(--status-approved-bg);
-  border: 1px solid var(--status-approved-border);
-  color: var(--status-approved-text);
-  border-radius: 8px;
-  width: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: var(--transition-fast);
-}
-.btn-send-chat:hover {
-  background: var(--status-approved-text);
-  color: #fff;
-}
 
 
 
-/* =========================================================
-   DASHBOARD GRID
-   ========================================================= */
-.dashboard-charts-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-}
-@media (max-width: 900px) {
-  .dashboard-charts-grid {
-    grid-template-columns: 1fr;
-  }
-}

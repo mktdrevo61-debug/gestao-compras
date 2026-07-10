@@ -27,15 +27,12 @@ const DrevoApp = {
 
   // Inicialização do Aplicativo
   async init() {
-    this.orders = [];
     this.cacheDOM();
     this.bindEvents();
     this.toggleObraField(); // Configura estado inicial da Obra
     this.registerServiceWorker(); // Ativa PWA
     await this.loadOrders();
-    this.updateSmartCatalog(); // [NEW] Preenche o datalist
     this.renderKPIs();
-    this.renderCharts(); // [NEW] Renderiza graficos
     this.renderOrders();
     this.setupColorSwatches();
     this.setupAutoRefresh();
@@ -55,19 +52,10 @@ const DrevoApp = {
   // Mapeamento dos Elementos DOM
   cacheDOM() {
     this.screens = document.querySelectorAll('.app-screen');
-    this.navBtnHome = document.getElementById('nav-btn-home');
-    this.navBtnTracking = document.getElementById('nav-btn-tracking');
+    this.btnBackNav = document.getElementById('btn-back-nav');
     this.navLogo = document.getElementById('nav-logo');
     this.erpIndicatorText = document.getElementById('erp-indicator-text');
     
-    this.massApprovalContainer = document.getElementById('mass-approval-container'); // [NEW]
-    this.massApprovalCount = document.getElementById('mass-approval-count'); // [NEW]
-    this.btnMassApprove = document.getElementById('btn-mass-approve'); // [NEW]
-    this.chartCanvas = document.getElementById('kpi-chart'); // [NEW]
-    this.statusChartCanvas = document.getElementById('status-chart'); // [NEW]
-    this.itemsCatalog = document.getElementById('items-catalog'); // [NEW]
-    this.selectedOrders = new Set(); // [NEW] Estado de selecao em lote
-
     // Cards de Ação na Home
     this.cardFp = document.getElementById('card-fp');
     this.cardCp = document.getElementById('card-cp');
@@ -132,15 +120,8 @@ const DrevoApp = {
     // Navegação
     this.cardFp.addEventListener('click', () => this.promptPasswordForOrderCreation());
     this.cardCp.addEventListener('click', () => this.navigateTo('screen-tracking'));
-    this.navBtnHome.addEventListener('click', () => this.navigateTo('screen-home'));
-    this.navBtnTracking.addEventListener('click', () => this.navigateTo('screen-tracking'));
+    this.btnBackNav.addEventListener('click', () => this.navigateTo('screen-home'));
     this.navLogo.addEventListener('click', () => this.navigateTo('screen-home'));
-
-
-    // Aprovação em Lote
-    if (this.btnMassApprove) {
-      this.btnMassApprove.addEventListener('click', () => this.approveSelectedOrders());
-    }
 
     // Steppers de Quantidade
     this.btnQtyMinus.addEventListener('click', () => this.adjustQuantity(-1));
@@ -211,19 +192,11 @@ const DrevoApp = {
       }
     });
 
-    // Atualiza estado ativo dos botões da sidebar
-    if (screenId === 'screen-home' || screenId === 'screen-form') {
-      this.navBtnHome.classList.add('active');
-      this.navBtnTracking.classList.remove('active');
-    } else if (screenId === 'screen-tracking') {
-      this.navBtnHome.classList.remove('active');
-      this.navBtnTracking.classList.add('active');
-    }
-
-    // Comportamento do botão de ação em massa
-    if (screenId === 'screen-tracking') {
-      if (this.massApprovalContainer) this.massApprovalContainer.style.display = 'none';
-      if (this.btnMassApprove) this.btnMassApprove.style.display = 'none';
+    // Controlar visibilidade do botão voltar
+    if (screenId === 'screen-home') {
+      this.btnBackNav.classList.remove('visible');
+    } else {
+      this.btnBackNav.classList.add('visible');
     }
 
     // Scroll para o topo
@@ -283,208 +256,6 @@ const DrevoApp = {
     });
   },
 
-  // ----------------------------------------------------
-  // NOVAS FUNÇÕES (V2): CATALOG, CHAT E LOTE
-  // ----------------------------------------------------
-  
-  updateSmartCatalog() {
-    if (!this.itemsCatalog) return;
-    const uniqueItems = new Set(this.orders.map(o => o.item.trim()).filter(i => i !== ''));
-    let html = '';
-    Array.from(uniqueItems).sort().forEach(item => {
-      html += `<option value="${item}"></option>`;
-    });
-    this.itemsCatalog.innerHTML = html;
-  },
-
-  toggleOrderSelection(uid) {
-    if (this.selectedOrders.has(uid)) {
-      this.selectedOrders.delete(uid);
-    } else {
-      this.selectedOrders.add(uid);
-    }
-    this.updateMassApprovalUI();
-  },
-
-  updateMassApprovalUI() {
-    if (!this.massApprovalContainer) return;
-    if (this.selectedOrders.size > 0) {
-      this.massApprovalContainer.style.display = 'flex';
-      this.massApprovalCount.textContent = this.selectedOrders.size;
-    } else {
-      this.massApprovalContainer.style.display = 'none';
-    }
-  },
-
-  async approveSelectedOrders() {
-    if (this.selectedOrders.size === 0) return;
-    if (confirm(`Deseja realmente aprovar ${this.selectedOrders.size} pedidos de uma vez?`)) {
-      const arrayToApprove = Array.from(this.selectedOrders);
-      this.btnMassApprove.disabled = true;
-      this.btnMassApprove.textContent = 'Aprovando...';
-
-      for (let uid of arrayToApprove) {
-        await this.approveOrder(uid, true); // O 'true' indica 'skipReRender' que vamos adicionar no método
-      }
-
-      this.selectedOrders.clear();
-      this.updateMassApprovalUI();
-      this.btnMassApprove.disabled = false;
-      this.btnMassApprove.textContent = 'Aprovar Lote';
-      
-      this.renderKPIs();
-      this.renderCharts();
-      this.renderOrders();
-      this.showToast('Lote aprovado com sucesso!', 'success');
-    }
-  },
-
-  renderCharts() {
-    if (!this.chartCanvas || !this.statusChartCanvas) return;
-    if (typeof Chart === 'undefined') return; // Segurança caso o CDN não carregue
-    
-    if (this.chartInstance) {
-      this.chartInstance.destroy();
-    }
-    if (this.statusChartInstance) {
-      this.statusChartInstance.destroy();
-    }
-    
-    // Gráfico 1: Pedidos por Centro de Custo
-    const costCenterData = {};
-    const statusData = { pending: 0, approved: 0, synced: 0, done: 0 };
-
-    this.orders.forEach(o => {
-      // Centro de Custo
-      const cc = o.costCenter || 'Outros';
-      costCenterData[cc] = (costCenterData[cc] || 0) + 1;
-
-      // Status
-      const s = o.status || 'pending';
-      if (statusData[s] !== undefined) statusData[s]++;
-    });
-    
-    const ccLabels = Object.keys(costCenterData);
-    const ccData = Object.values(costCenterData);
-    
-    const textColor = '#A8B0C6';
-    const gridColor = 'rgba(255,255,255,0.05)';
-    
-    const ctxBar = this.chartCanvas.getContext('2d');
-    this.chartInstance = new Chart(ctxBar, {
-      type: 'bar',
-      data: {
-        labels: ccLabels,
-        datasets: [{
-          label: 'Qtd de Pedidos',
-          data: ccData,
-          backgroundColor: '#3498db',
-          borderRadius: 6
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false }
-        },
-        scales: {
-          y: { 
-            beginAtZero: true,
-            ticks: { color: textColor, precision: 0, stepSize: 1 },
-            grid: { color: gridColor }
-          },
-          x: {
-            ticks: { color: textColor },
-            grid: { display: false }
-          }
-        }
-      }
-    });
-
-    // Gráfico 2: Status (Donut)
-    const ctxDonut = this.statusChartCanvas.getContext('2d');
-    this.statusChartInstance = new Chart(ctxDonut, {
-      type: 'doughnut',
-      data: {
-        labels: ['Pendentes', 'Aprovados', 'Sincronizados', 'Concluídos'],
-        datasets: [{
-          data: [statusData.pending, statusData.approved, statusData.synced, statusData.done],
-          backgroundColor: ['#f39c12', '#2ecc71', '#9b59b6', '#3498db'],
-          borderWidth: 0
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '75%',
-        plugins: {
-          legend: { 
-            position: 'right',
-            labels: { color: textColor, usePointStyle: true, padding: 20 }
-          }
-        }
-      }
-    });
-  },
-  
-  async sendChatMessage(uid) {
-    const order = this.orders.find(o => (o._uid || o.id) === uid);
-    if (!order) return;
-    
-    const inputField = document.getElementById(`chat-input-${uid}`);
-    if (!inputField) return;
-    const text = inputField.value.trim();
-    if (!text) return;
-    
-    inputField.value = '';
-    
-    let comments = [];
-    try {
-      comments = typeof order.comments === 'string' ? JSON.parse(order.comments) : (order.comments || []);
-    } catch(e) { comments = []; }
-    
-    comments.push({
-      author: 'Você', // Mostra como 'Você' localmente
-      text: text,
-      timestamp: new Date().toISOString()
-    });
-    
-    order.comments = JSON.stringify(comments);
-    this.saveOrders(); // Salva localmente
-    
-    const messagesContainer = document.getElementById(`chat-messages-${uid}`);
-    if (messagesContainer) {
-      messagesContainer.innerHTML += `
-        <div class="chat-message self">
-          <span class="chat-message-author">Você</span>
-          <p class="chat-message-text">${text}</p>
-          <span class="chat-message-time">Agora mesmo</span>
-        </div>
-      `;
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-    
-    if (typeof API_URL !== 'undefined' && API_URL) {
-      try {
-        await fetch(API_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({
-            action: "AdicionarComentario",
-            id: order.id,
-            author: "Gestor", // ou inputRequester se for o app do usuário
-            text: text
-          })
-        });
-      } catch (err) {
-        console.error("Erro ao enviar mensagem:", err);
-      }
-    }
-  },
-
-
   // Carregar Pedidos (Google Sheets ou LocalStorage fallback)
   async loadOrders() {
     // 1. Carregar do LocalStorage como fallback imediato (evita tela em branco)
@@ -503,7 +274,7 @@ const DrevoApp = {
     // 2. Tentar carregar da Planilha Google (se houver API_URL ativo)
     if (typeof API_URL !== 'undefined' && API_URL) {
       try {
-        this.erpIndicatorText.innerHTML = `<span class="status-dot" style="background-color: var(--status-pending-text); box-shadow: 0 0 10px var(--status-pending-text);"></span> <span style="white-space: nowrap;">Conectando...</span>`;
+        this.erpIndicatorText.innerHTML = `<span class="status-dot" style="background-color: var(--status-pending-text); box-shadow: 0 0 10px var(--status-pending-text);"></span> Conectando...`;
         
         const res = await fetch(`${API_URL}?_=${Date.now()}`);
         const data = await res.json();
@@ -511,15 +282,13 @@ const DrevoApp = {
         if (data && data.orders) {
             // Filtrar os pedidos vazios da planilha e os mais recentes primeiro no display
             this.orders = data.orders.filter(o => o.id && o.id.trim() !== '' && o.item && o.item.trim() !== '').reverse();
-            // Garantir que cada pedido tenha um identificador 100% unico para a interface (evita bugs se houver IDs duplicados na planilha)
-            this.orders.forEach(o => { if(!o._uid) o._uid = Math.random().toString(36).substring(2, 11); });
             this.saveOrders(); // Sincronizar cache local
           
-          this.erpIndicatorText.innerHTML = `<span class="status-dot"></span> <span style="white-space: nowrap;">ERP Conectado</span>`;
+          this.erpIndicatorText.innerHTML = `<span class="status-dot"></span> ERP Conectado`;
         }
       } catch (err) {
         console.warn("Erro ao buscar da Planilha Google, utilizando cache local:", err);
-        this.erpIndicatorText.innerHTML = `<span class="status-dot" style="background-color: var(--status-pending-text); box-shadow: 0 0 10px var(--status-pending-text);"></span> <span style="white-space: nowrap;">Banco Local</span>`;
+        this.erpIndicatorText.innerHTML = `<span class="status-dot" style="background-color: var(--status-pending-text); box-shadow: 0 0 10px var(--status-pending-text);"></span> Banco Local (Offline)`;
       }
     }
   },
@@ -649,7 +418,6 @@ const DrevoApp = {
 
     // Instanciar Pedido
     const newOrder = {
-      _uid: Math.random().toString(36).substring(2, 11),
       id: newId,
       item,
       unit,
@@ -774,8 +542,7 @@ const DrevoApp = {
     filtered.forEach(order => {
       const card = document.createElement('div');
       card.className = 'order-card';
-      const safeUid = order._uid || order.id;
-      card.id = `card-${safeUid}`;
+      card.id = `card-${order.id}`;
 
       // Função auxiliar para gerar datas fictícias progressivas em caso de fallback
       const parseAndAddHours = (dateStr, hoursToAdd) => {
@@ -857,32 +624,10 @@ const DrevoApp = {
       // SVG Ícone Chevron
       const chevronSvg = `<svg class="card-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
 
-      // SLA Logic (Alerta de Atraso)
-      let isSlaWarning = false;
-      let isSlaCritical = false;
-      if (st === 'pending' && order.date) {
-        try {
-          // A data está no formato DD/MM/YYYY
-          const datePart = order.date.split(' ')[0];
-          const parts = datePart.split('/');
-          if (parts.length === 3) {
-            const orderDate = new Date(parts[2], parts[1] - 1, parts[0]);
-            const now = new Date();
-            const diffTime = now.getTime() - orderDate.getTime();
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            if (diffDays >= 7) isSlaCritical = true;
-            else if (diffDays >= 3) isSlaWarning = true;
-          }
-        } catch(e) {}
-      }
-      if (isSlaWarning) card.classList.add('sla-warning');
-      if (isSlaCritical) card.classList.add('sla-critical');
-
       card.innerHTML = `
-        <div class="order-header-main" onclick="DrevoApp.toggleCard('${safeUid}')">
+        <div class="order-header-main" onclick="DrevoApp.toggleCard('${order.id}')">
           <div class="order-meta-info">
             <div class="order-id-row">
-              ${st === 'pending' ? `<input type="checkbox" class="mass-approve-checkbox" ${this.selectedOrders.has(safeUid) ? 'checked' : ''} onclick="event.stopPropagation(); DrevoApp.toggleOrderSelection('${safeUid}')">` : ''}
               <span class="order-id">${order.id}</span>
               <span class="priority-badge priority-${order.priority || 'normal'}">${priorityLabel}</span>
               <span class="order-date">${order.date}</span>
@@ -996,19 +741,6 @@ const DrevoApp = {
               </div>
             </div>
 
-            <!-- CHAT / COMENTÁRIOS -->
-            <div class="order-chat-container" onclick="event.stopPropagation()">
-              <div class="chat-messages" id="chat-messages-${safeUid}">
-                ${this.renderChatMessages(order.comments)}
-              </div>
-              <div class="chat-input-row">
-                <input type="text" id="chat-input-${safeUid}" class="chat-input" placeholder="Adicionar comentário..." autocomplete="off" onkeypress="if(event.key === 'Enter') DrevoApp.sendChatMessage('${safeUid}')">
-                <button class="btn-send-chat" onclick="DrevoApp.sendChatMessage('${safeUid}')" title="Enviar Mensagem">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                </button>
-              </div>
-            </div>
-
             <div class="order-actions-row">
               ${this.renderActionButtons(order)}
             </div>
@@ -1024,30 +756,29 @@ const DrevoApp = {
   // Renderizar os botões de ação dinâmicos do Card baseado no status atual
   renderActionButtons(order) {
     const st = this.normalizeStatus(order.status);
-    const safeUid = order._uid || order.id;
     let buttons = '';
 
     if (st === 'pending') {
       buttons += `
-        <button class="btn-card-action btn-card-approve" onclick="event.stopPropagation(); DrevoApp.approveOrder('${safeUid}')">
+        <button class="btn-card-action btn-card-approve" onclick="event.stopPropagation(); DrevoApp.approveOrder('${order.id}')">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
           Aprovar Pedido
         </button>
       `;
     } else if (st === 'approved') {
       buttons += `
-        <button class="btn-card-action btn-card-sync" onclick="event.stopPropagation(); DrevoApp.syncWithERP('${safeUid}')">
+        <button class="btn-card-action btn-card-sync" onclick="event.stopPropagation(); DrevoApp.syncWithERP('${order.id}')">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
           Registrar Compra (ERP)
         </button>
       `;
     } else if (st === 'synced') {
       buttons += `
-        <button class="btn-card-action btn-card-approve" onclick="event.stopPropagation(); DrevoApp.completeOrder('${safeUid}', 'almoxarifado')">
+        <button class="btn-card-action btn-card-approve" onclick="event.stopPropagation(); DrevoApp.completeOrder('${order.id}', 'almoxarifado')">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
           Disponível no Almoxarifado
         </button>
-        <button class="btn-card-action btn-card-sync" style="background: rgba(25, 111, 151, 0.1); color: var(--sync-teal); border-color: rgba(25, 111, 151, 0.25);" onclick="event.stopPropagation(); DrevoApp.completeOrder('${safeUid}', 'obra')">
+        <button class="btn-card-action btn-card-sync" style="background: rgba(25, 111, 151, 0.1); color: var(--sync-teal); border-color: rgba(25, 111, 151, 0.25);" onclick="event.stopPropagation(); DrevoApp.completeOrder('${order.id}', 'obra')">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
           Entregue na Obra
         </button>
@@ -1056,49 +787,13 @@ const DrevoApp = {
 
     // Botão de Excluir sempre disponível no Modo Gestor
     buttons += `
-      <button class="btn-card-action btn-card-delete" onclick="event.stopPropagation(); DrevoApp.deleteOrder('${safeUid}')">
+      <button class="btn-card-action btn-card-delete" onclick="event.stopPropagation(); DrevoApp.deleteOrder('${order.id}')">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
         Excluir
       </button>
     `;
 
     return buttons;
-  },
-
-  // Renderizar mensagens de chat
-  renderChatMessages(commentsJson) {
-    let comments = [];
-    try {
-      comments = typeof commentsJson === 'string' ? JSON.parse(commentsJson) : (commentsJson || []);
-    } catch(e) {
-      return '';
-    }
-    
-    if (!comments || comments.length === 0) {
-      return '<span style="font-size: 0.8rem; color: var(--neutral-500); font-style: italic;">Nenhum comentário.</span>';
-    }
-
-    return comments.map(c => {
-      const isSelf = c.author === 'Você' || c.author === 'Gestor' || c.author === 'Administrador'; // heurística local
-      const cssClass = isSelf ? 'chat-message self' : 'chat-message';
-      
-      // Formatar data se for ISO
-      let timeStr = c.timestamp;
-      try {
-        if (c.timestamp.includes('T')) {
-          const d = new Date(c.timestamp);
-          timeStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-        }
-      } catch(e) {}
-
-      return `
-        <div class="${cssClass}">
-          <span class="chat-message-author">${c.author}</span>
-          <p class="chat-message-text">${c.text}</p>
-          <span class="chat-message-time">${timeStr}</span>
-        </div>
-      `;
-    }).join('');
   },
 
   // Retorna o Hexadecimal correspondente ao nome da cor para visualização
@@ -1138,10 +833,9 @@ const DrevoApp = {
   },
 
   // Aprovar Pedido localmente e na Planilha
-  async approveOrder(uid, skipReRender = false) {
-    const order = this.orders.find(o => (o._uid || o.id) === uid);
+  async approveOrder(orderId) {
+    const order = this.orders.find(o => o.id === orderId);
     if (order) {
-      const orderId = order.id;
       // Registrar log de aprovação
       const now = new Date();
       const formattedDate = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -1173,22 +867,19 @@ const DrevoApp = {
       // Disparar notificação FCM
       this.dispararPush('Pedido Aprovado! ✅', `O Gestor aprovou o pedido ${orderId} ("${order.item}").`);
       
-      if (!skipReRender) {
-        // Renderizar novamente
-        this.renderKPIs();
-        this.renderOrders();
-        
-        // Manter expandido
-        setTimeout(() => this.toggleCard(orderId), 50);
-      }
+      // Renderizar novamente
+      this.renderKPIs();
+      this.renderOrders();
+      
+      // Manter expandido
+      setTimeout(() => this.toggleCard(orderId), 50);
     }
   },
 
   // Marcar como entregue localmente e na Planilha (gatilho de estoque no Almoxarifado!)
-  async completeOrder(uid, destination) {
-    const order = this.orders.find(o => (o._uid || o.id) === uid);
+  async completeOrder(orderId, destination) {
+    const order = this.orders.find(o => o.id === orderId);
     if (order) {
-      const orderId = order.id;
       const isObra = destination === 'obra';
       const statusKey = isObra ? 'done_obra' : 'done';
       const logMsg = isObra ? 'Material entregue na obra destino.' : 'Material recebido no Almoxarifado.';
@@ -1234,10 +925,9 @@ const DrevoApp = {
   },
 
   // Excluir Pedido com confirmação simples
-  deleteOrder(uid) {
-    const order = this.orders.find(o => (o._uid || o.id) === uid);
-    if (order && confirm(`Tem certeza que deseja excluir permanentemente o pedido ${order.id}?`)) {
-      this.orders = this.orders.filter(o => o !== order);
+  deleteOrder(orderId) {
+    if (confirm(`Tem certeza que deseja excluir permanentemente o pedido ${orderId}?`)) {
+      this.orders = this.orders.filter(o => o.id !== orderId);
       this.saveOrders();
       this.showToast(`Pedido ${orderId} excluído com sucesso.`, 'success');
       
@@ -1247,17 +937,16 @@ const DrevoApp = {
   },
 
   // Simular Sequência Animada de Registro de Compra (Antigo Sincronismo ERP)
-  syncWithERP(uid) {
-    const order = this.orders.find(o => (o._uid || o.id) === uid);
+  syncWithERP(orderId) {
+    const order = this.orders.find(o => o.id === orderId);
     if (!order) return;
-    const orderId = order.id;
 
     this.syncOrderTitle.textContent = `Registrando Compra ${order.id}...`;
     this.syncConsole.innerHTML = '';
     this.syncOverlay.classList.add('active');
 
     // Desabilitar o indicador no topo
-    this.erpIndicatorText.innerHTML = `<span class="status-dot" style="background-color: var(--status-pending-text); box-shadow: 0 0 10px var(--status-pending-text);"></span> <span style="white-space: nowrap;">Processando...</span>`;
+    this.erpIndicatorText.innerHTML = `<span class="status-dot" style="background-color: var(--status-pending-text); box-shadow: 0 0 10px var(--status-pending-text);"></span> Processando...`;
 
     // Linhas de log fictícias com tempos de carregamento progressivos
     const logs = [
@@ -1315,7 +1004,7 @@ const DrevoApp = {
       this.syncOverlay.classList.remove('active');
       
       this.erpIndicatorText.classList.remove('error');
-      this.erpIndicatorText.innerHTML = `<span class="status-dot"></span> <span style="white-space: nowrap;">ERP Conectado</span>`;
+      this.erpIndicatorText.innerHTML = `<span class="status-dot"></span> ERP Conectado`;
 
       // Dispara o Web Push automaticamente para a equipe via Google Apps Script
       this.dispararPush(`Compra Aprovada! 📦`, `O pedido ${orderId} acaba de ser comprado pelo Gestor.`);

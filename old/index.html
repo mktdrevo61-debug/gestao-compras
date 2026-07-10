@@ -13,54 +13,33 @@
   
   <!-- Estilos Oficiais do Módulo -->
   <link rel="stylesheet" href="css/style.css?v=ios1">
-  <!-- Chart.js para gráficos -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-  <!-- Sidebar Lateral / Bottom Nav Mobile -->
-  <aside class="sidebar" id="app-sidebar">
-    <!-- Logotipo Oficial Drevo -->
-    <div id="nav-logo" class="nav-logo-box" aria-label="Drevo Home" style="cursor: pointer;">
-      <img src="assets/logo.png" alt="Drevo Logo" class="sidebar-logo">
-    </div>
-
-    <!-- Navegação Primária -->
-    <nav class="sidebar-nav">
-      <button id="nav-btn-home" class="sidebar-nav-btn active">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+  <!-- Menu de Navegação Superior (Translucido e Fixo) -->
+  <nav class="brand-nav">
+    <div class="nav-left">
+      <!-- Botão Voltar (aparece dinamicamente em telas internas) -->
+      <button id="btn-back-nav" class="btn-back-nav" aria-label="Voltar para a página inicial">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
         </svg>
-        <span>Requisições</span>
       </button>
-
-      <button id="nav-btn-tracking" class="sidebar-nav-btn">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="8" y1="6" x2="21" y2="6"></line>
-          <line x1="8" y1="12" x2="21" y2="12"></line>
-          <line x1="8" y1="18" x2="21" y2="18"></line>
-          <line x1="3" y1="6" x2="3.01" y2="6"></line>
-          <line x1="3" y1="12" x2="3.01" y2="12"></line>
-          <line x1="3" y1="18" x2="3.01" y2="18"></line>
-        </svg>
-        <span>Pedidos</span>
-      </button>
-    </nav>
-
-    <!-- Spacer para empurrar o resto para baixo no desktop -->
-    <div class="sidebar-spacer"></div>
-
-    <!-- Ações e Indicador ERP -->
-    <div class="sidebar-footer">
-      <div id="erp-indicator" class="erp-status-indicator" title="Status de conexão com servidores ERP corporativos">
-        <span id="erp-indicator-text" style="display: flex; align-items: center; gap: 0.4rem; justify-content: center;">
-          <span class="status-dot"></span>
-          <span class="erp-text">ERP Online</span>
-        </span>
+      
+      <!-- Logotipo Oficial Drevo -->
+      <div id="nav-logo" class="nav-logo-box" aria-label="Drevo Home">
+        <img src="assets/logo.png" alt="Drevo Logo" style="height: 52px; width: auto; object-fit: contain;">
       </div>
     </div>
-  </aside>
+
+    <!-- Indicador Ativo de Conexão com o ERP -->
+    <div id="erp-indicator" class="erp-status-indicator" title="Status de conexão com servidores ERP corporativos">
+      <span id="erp-indicator-text" style="display: flex; align-items: center; gap: 0.5rem;">
+        <span class="status-dot"></span>
+        ERP Conectado
+      </span>
+    </div>
+  </nav>
 
   <!-- Container de Conteúdo Geral do Aplicativo -->
   <main class="app-container">
@@ -91,25 +70,6 @@
         <div class="kpi-card kpi-synced">
           <span class="kpi-label">Comprados</span>
           <span id="kpi-synced-val" class="kpi-val">00</span>
-        </div>
-      </div>
-
-      <!-- Gráficos de Acompanhamento (Chart.js) -->
-      <div class="dashboard-charts-grid" style="margin-bottom: 2rem;">
-        <!-- Gráfico 1: Barras -->
-        <div class="glass-panel" style="padding: 1.5rem; display: flex; flex-direction: column;">
-          <h3 style="font-size: 0.85rem; color: var(--neutral-400); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Despesas por Centro de Resultado</h3>
-          <div style="position: relative; height: 220px; width: 100%; flex: 1;">
-            <canvas id="kpi-chart"></canvas>
-          </div>
-        </div>
-
-        <!-- Gráfico 2: Donut (Status) -->
-        <div class="glass-panel" style="padding: 1.5rem; display: flex; flex-direction: column;">
-          <h3 style="font-size: 0.85rem; color: var(--neutral-400); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Distribuição de Status</h3>
-          <div style="position: relative; height: 220px; width: 100%; flex: 1; display: flex; justify-content: center;">
-            <canvas id="status-chart"></canvas>
-          </div>
         </div>
       </div>
 
@@ -200,8 +160,7 @@
           <!-- 1. Item (Descrição / Nome) -->
           <div class="input-group form-col-full">
             <label for="input-item" class="input-label">Descrição do Item</label>
-            <input type="text" id="input-item" list="items-catalog" class="input-field" placeholder="Digite a descrição do item a ser solicitado..." autocomplete="off" required>
-            <datalist id="items-catalog"></datalist>
+            <input type="text" id="input-item" class="input-field" placeholder="Digite a descrição do item a ser solicitado..." required>
           </div>
 
           <!-- 2. Unidade de Medida -->
@@ -334,14 +293,6 @@
 
         </div>
 
-        <!-- Painel de Aprovação em Lote (Dinâmico) -->
-        <div id="mass-approval-container" style="display: none; justify-content: space-between; align-items: center; background: rgba(46, 204, 113, 0.1); border: 1px solid var(--status-done-border); border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; transition: all 0.3s ease;">
-          <span style="color: var(--sync-white); font-weight: 600;"><span id="mass-approval-count">0</span> pedido(s) selecionado(s)</span>
-          <button id="btn-mass-approve" class="btn-card-action btn-card-approve" style="margin: 0; padding: 0.6rem 1.2rem;">
-            Aprovar Lote
-          </button>
-        </div>
-
         <!-- Lista Dinâmica de Pedidos -->
         <div id="orders-container" class="orders-list">
           <!-- Populado dinamicamente via JS -->
@@ -350,20 +301,6 @@
       </div>
 
     </section>
-
-    <!-- RODAPÉ CORPORATIVO OFICIAL DREVO COMPRAS -->
-    <footer class="brand-footer">
-      <div class="footer-content">
-        <div class="footer-logo-box">
-          <img src="assets/logo.png" alt="Drevo Logo" class="footer-logo">
-        </div>
-        <div class="footer-info">
-          <p class="footer-title">Portal Corporativo de Compras</p>
-          <p class="footer-copyright">© 2026 Drevo Móveis Sob Medida. Todos os direitos reservados.</p>
-          <p class="footer-tech">Sistema Integrado ERP • Transmissão Segura</p>
-        </div>
-      </div>
-    </footer>
 
   </main>
 
@@ -419,6 +356,15 @@
     <span id="toast-icon"></span>
     <span id="toast-text">Alerta corporativo premium.</span>
   </div>
+
+  <!-- RODAPÉ CORPORATIVO OFICIAL DREVO COMPRAS -->
+  <footer class="brand-footer">
+    <div class="footer-logo-box">
+      <img src="assets/logo.png" alt="Drevo Logo Rodapé" style="height: 40px; width: auto; object-fit: contain; opacity: 0.85;">
+    </div>
+    <p class="footer-text">© 2026 DREVO. Portal Corporativo de Compras.</p>
+    <p class="footer-text" style="font-size: 0.65rem; margin-top: 0.3rem; opacity: 0.5;">Banco de Dados Integrado e Fila de Transmissão Corporativa.</p>
+  </footer>
 
   <!-- Scripts Oficiais da Aplicação -->
   <!-- OneSignal SDK -->

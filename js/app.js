@@ -1417,16 +1417,13 @@ const DrevoApp = {
 
         const previousOrders = JSON.parse(JSON.stringify(this.orders));
         await this.loadOrders();
-        
-        const stripLogsAndNormalize = (ordersArr) => ordersArr.map(({logs, status, ...rest}) => ({
-          ...rest,
-          status: this.normalizeStatus(status)
-        }));
-        const oldOrdersStr = JSON.stringify(stripLogsAndNormalize(previousOrders));
-        const newOrdersStr = JSON.stringify(stripLogsAndNormalize(this.orders));
+        // Checagem robusta: só re-renderiza se mudar a quantidade de pedidos ou o status de algum deles
+        const getHash = (arr) => arr.map(o => o.id + ':' + this.normalizeStatus(o.status)).join('|');
+        const oldHash = getHash(previousOrders);
+        const newHash = getHash(this.orders);
         
         // Atualiza a interface se houver mudança real
-        if (oldOrdersStr !== newOrdersStr) {
+        if (oldHash !== newHash) {
           this.renderKPIs();
           this.renderOrders();
           

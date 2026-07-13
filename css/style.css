@@ -2050,7 +2050,80 @@ body {
   gap: 1.5rem;
 }
 @media (max-width: 900px) {
-  .dashboard-charts-grid {
-    grid-template-columns: 1fr;
   }
+}
+
+/* =========================================================
+   PDF UPLOAD / DOWNLOAD
+   ========================================================= */
+.file-upload-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.file-upload-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  padding: 0.8rem;
+  border-radius: 8px;
+  color: var(--neutral-300);
+  text-align: center;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.file-upload-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: var(--sync-white);
+}
+
+.btn-download-pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(76, 175, 80, 0.1);
+  color: #4caf50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-download-pdf:hover {
+  background: rgba(76, 175, 80, 0.2);
+  border-color: rgba(76, 175, 80, 0.5);
+  transform: translateY(-1px);
+}
+
+.pdf-upload-post {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-upload-pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--neutral-300);
+  border: 1px dashed rgba(255, 255, 255, 0.3);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-upload-pdf:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--sync-white);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px);
 }

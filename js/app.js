@@ -101,7 +101,12 @@ const DrevoApp = {
     this.inputPassword = document.getElementById('input-password');
     this.btnCancelPassword = document.getElementById('btn-cancel-password');
     this.btnConfirmPassword = document.getElementById('btn-confirm-password');
+    this.btnConfirmPassword = document.getElementById('btn-confirm-password');
     
+    // Upload de Arquivos
+    this.inputPdf = document.getElementById('input-pdf');
+    this.fileNameDisplay = document.getElementById('file-name-display');
+
     // Steppers Quantidade
     this.btnQtyMinus = document.getElementById('qty-minus');
     this.btnQtyPlus = document.getElementById('qty-plus');
@@ -136,6 +141,23 @@ const DrevoApp = {
     this.navBtnTracking.addEventListener('click', () => this.navigateTo('screen-tracking'));
     this.navLogo.addEventListener('click', () => this.navigateTo('screen-home'));
 
+    // Arquivos PDF Form
+    if (this.inputPdf) {
+      this.inputPdf.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+          const file = e.target.files[0];
+          if (file.size > 5 * 1024 * 1024) {
+            this.showToast('O arquivo PDF não pode ser maior que 5MB.', 'error');
+            this.inputPdf.value = '';
+            this.fileNameDisplay.textContent = 'Nenhum arquivo selecionado';
+          } else {
+            this.fileNameDisplay.textContent = file.name;
+          }
+        } else {
+          this.fileNameDisplay.textContent = 'Nenhum arquivo selecionado';
+        }
+      });
+    }
 
     // Aprovação em Lote
     if (this.btnMassApprove) {
@@ -647,6 +669,37 @@ const DrevoApp = {
     const now = new Date();
     const formattedDate = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
+    // Processar Arquivo PDF (se houver)
+    let pdfFile = null;
+    if (this.inputPdf && this.inputPdf.files.length > 0) {
+      const file = this.inputPdf.files[0];
+      try {
+        const base64String = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const dataUrl = reader.result;
+            // Remover o cabeçalho 'data:application/pdf;base64,' do início
+            const base64 = dataUrl.split(',')[1];
+            resolve(base64);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        
+        pdfFile = {
+          name: file.name,
+          data: base64String,
+          mimeType: file.type
+        };
+      } catch (err) {
+        console.error("Erro ao ler o PDF:", err);
+        this.showToast("Erro ao processar o arquivo PDF.", "error");
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = originalContent;
+        return;
+      }
+    }
+
     // Instanciar Pedido
     const newOrder = {
       _uid: Math.random().toString(36).substring(2, 11),
@@ -662,6 +715,7 @@ const DrevoApp = {
       requester, // Novo
       status: 'pending', // Inicia pendente de aprovação
       date: formattedDate,
+      pdfUrl: '', // Vai ser atualizado no backend, ou via sync
       logs: [ // Novo
         { action: 'pending', message: `Pedido lançado no sistema por ${requester}.`, date: formattedDate }
       ]
@@ -680,11 +734,17 @@ const DrevoApp = {
           brand,
           costCenter,
           obra,
-          priority, // Novo
-          requester // Novo
+          priority,
+          requester,
+          pdfFile: pdfFile // Adiciona o objeto com base64
         };
         
-        await fetch(API_URL, {
+        // Se houver PDF, o upload demora um pouco mais, vamos avisar o usuário
+        if (pdfFile) {
+          btnSubmit.innerHTML = `<svg class="sync-radar-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="animation: spin 1s infinite linear;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Enviando PDF...`;
+        }
+
+        const response = await fetch(API_URL, {
           method: 'POST',
           mode: 'no-cors',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -929,7 +989,30 @@ const DrevoApp = {
               ` : ''}
             </div>
 
-            <div class="timeline-title">
+            <!-- NOVO: SEÇÃO DE PDF -->
+            <div class="order-pdf-section" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255, 255, 255, 0.05);">
+              <div class="timeline-title" style="margin-bottom: 1rem;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                Anexo do Pedido (Orçamento / NF)
+              </div>
+              ${order.pdfUrl && order.pdfUrl.trim() !== '' ? `
+                <a href="${order.pdfUrl}" target="_blank" class="btn-download-pdf">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  Visualizar / Baixar PDF
+                </a>
+              ` : `
+                <div class="pdf-upload-post">
+                  <input type="file" id="post-pdf-${safeUid}" class="input-field" accept="application/pdf" style="display: none;" onchange="DrevoApp.uploadPostPdf('${safeUid}', this)">
+                  <button class="btn-upload-pdf" onclick="event.stopPropagation(); document.getElementById('post-pdf-${safeUid}').click();">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    Anexar PDF a este Pedido
+                  </button>
+                  <span id="post-pdf-status-${safeUid}" class="pdf-status-text" style="font-size: 0.8rem; color: var(--neutral-400); margin-left: 10px;">Nenhum anexo</span>
+                </div>
+              `}
+            </div>
+
+            <div class="timeline-title" style="margin-top: 1.5rem;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               Linha de Status do Pedido
             </div>
@@ -1239,11 +1322,89 @@ const DrevoApp = {
     if (order && confirm(`Tem certeza que deseja excluir permanentemente o pedido ${order.id}?`)) {
       this.orders = this.orders.filter(o => o !== order);
       this.saveOrders();
-      this.showToast(`Pedido ${orderId} excluído com sucesso.`, 'success');
+      this.showToast(`Pedido ${order.id} excluído com sucesso.`, 'success');
       
       this.renderKPIs();
       this.renderOrders();
     }
+  },
+
+  // Fazer upload de um PDF num pedido já existente
+  async uploadPostPdf(uid, inputElem) {
+    const order = this.orders.find(o => (o._uid || o.id) === uid);
+    if (!order) return;
+
+    if (!inputElem.files || inputElem.files.length === 0) return;
+    const file = inputElem.files[0];
+
+    if (file.size > 5 * 1024 * 1024) {
+      this.showToast('O arquivo PDF não pode ser maior que 5MB.', 'error');
+      inputElem.value = '';
+      return;
+    }
+
+    const statusElem = document.getElementById(`post-pdf-status-${uid}`);
+    if (statusElem) {
+      statusElem.textContent = 'Enviando PDF...';
+      statusElem.style.color = 'var(--sync-teal)';
+    }
+
+    try {
+      const base64String = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = reader.result;
+          const base64 = dataUrl.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      
+      const pdfFile = {
+        name: file.name,
+        data: base64String,
+        mimeType: file.type
+      };
+
+      if (typeof API_URL !== 'undefined' && API_URL) {
+        const payload = {
+          action: "UploadPDF",
+          id: order.id,
+          pdfFile: pdfFile
+        };
+        
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        
+        this.showToast('PDF anexado com sucesso!', 'success');
+        if (statusElem) {
+          statusElem.textContent = 'PDF anexado e enviado!';
+          statusElem.style.color = 'var(--status-approved-text)';
+        }
+
+        // Simular que deu certo para re-renderizar o PDF link logo em seguida
+        // O próximo polling vai puxar a URL correta, mas podemos deixar pendente.
+        order.pdfUrl = 'uploading...';
+        this.saveOrders();
+        
+      } else {
+        this.showToast('Erro: API Offline.', 'error');
+      }
+
+    } catch (err) {
+      console.error("Erro ao subir PDF:", err);
+      this.showToast("Erro ao processar o arquivo PDF.", "error");
+      if (statusElem) {
+        statusElem.textContent = 'Falha no envio.';
+        statusElem.style.color = 'var(--sync-red)';
+      }
+    }
+    inputElem.value = '';
   },
 
   // Simular Sequência Animada de Registro de Compra (Antigo Sincronismo ERP)

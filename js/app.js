@@ -1418,9 +1418,12 @@ const DrevoApp = {
         const previousOrders = JSON.parse(JSON.stringify(this.orders));
         await this.loadOrders();
         
-        const stripLogs = (ordersArr) => ordersArr.map(({logs, ...rest}) => rest);
-        const oldOrdersStr = JSON.stringify(stripLogs(previousOrders));
-        const newOrdersStr = JSON.stringify(stripLogs(this.orders));
+        const stripLogsAndNormalize = (ordersArr) => ordersArr.map(({logs, status, ...rest}) => ({
+          ...rest,
+          status: this.normalizeStatus(status)
+        }));
+        const oldOrdersStr = JSON.stringify(stripLogsAndNormalize(previousOrders));
+        const newOrdersStr = JSON.stringify(stripLogsAndNormalize(this.orders));
         
         // Atualiza a interface se houver mudança real
         if (oldOrdersStr !== newOrdersStr) {

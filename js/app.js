@@ -1,5 +1,5 @@
 // URL de Integração Google Sheets (ERP Central)
-const API_URL = "https://script.google.com/macros/s/AKfycbxC047PD6PN7rwA6YUicZhm_xV0xF0iDJSE8iW7eVyTIKRztQEKL46iZjtWQ4_sH98G/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbz5DQBFNxfIzi5HLFlfJOL-oypbWxKgPZwhpaS7z10EiMfe0oJMOTGybSE7JqSBqYH1/exec";
 
 // Gerenciador de Estado do Aplicativo
 const DrevoApp = {

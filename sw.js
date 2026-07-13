@@ -1,5 +1,5 @@
 // sw.js - Service Worker simples para PWA Drevo Gestão de Compras
-const CACHE_NAME = 'drevo-compras-v24';
+const CACHE_NAME = 'drevo-compras-v25';
 const ASSETS = [
   './',
   './index.html',

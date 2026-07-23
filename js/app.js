@@ -15,12 +15,28 @@ const DrevoApp = {
   // Normalizar status para termos padronizados em inglês
   normalizeStatus(status) {
     if (!status) return 'pending';
-    const s = status.toString().toLowerCase().trim();
+    const s = status.toString().toLowerCase().trim()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // remove acentos para comparação robusta
+
     if (s === 'pendente' || s === 'pending') return 'pending';
     if (s === 'aprovado' || s === 'approved') return 'approved';
-    if (s === 'sincronizado' || s === 'synced' || s === 'sincronizado erp' || s === 'comprado' || s === 'bought') return 'synced';
-    if (s === 'entregue' || s === 'done' || s === 'recebido') return 'done';
-    if (s === 'done_obra' || s === 'entregue na obra' || s === 'obra_entregue' || s === 'entregue_obra') return 'done_obra';
+
+    // Comprado / Sincronizado ERP
+    if (s === 'sincronizado' || s === 'synced' || s === 'sincronizado erp' ||
+        s === 'comprado' || s === 'comprada' || s === 'compado' ||
+        s === 'bought' || s === 'erp' || s === 'faturado') return 'synced';
+
+    // Concluído — Disponível no Almoxarifado
+    if (s === 'entregue' || s === 'done' || s === 'recebido' ||
+        s === 'disponivel' || s === 'disponivel no almoxarifado' ||
+        s === 'almoxarifado' || s === 'concluido' || s === 'concluído' ||
+        s === 'finalizado' || s === 'encerrado' || s === 'recebido almoxarifado') return 'done';
+
+    // Concluído — Entregue na Obra
+    if (s === 'done_obra' || s === 'entregue na obra' || s === 'obra_entregue' ||
+        s === 'entregue_obra' || s === 'entregue obra' || s === 'obra' ||
+        s === 'em obra' || s === 'na obra' || s === 'entregue no local') return 'done_obra';
+
     if (s === 'recusado' || s === 'rejected') return 'rejected';
     return 'pending';
   },
@@ -732,8 +748,11 @@ const DrevoApp = {
         if (data && data.orders) {
             // Filtrar os pedidos vazios da planilha e os mais recentes primeiro no display
             this.orders = data.orders.filter(o => o.id && o.id.trim() !== '' && o.item && o.item.trim() !== '').reverse();
-            // Garantir que cada pedido tenha um identificador 100% unico para a interface (evita bugs se houver IDs duplicados na planilha)
+            // Garantir que cada pedido tenha um identificador 100% unico para a interface
             this.orders.forEach(o => { if(!o._uid) o._uid = Math.random().toString(36).substring(2, 11); });
+            // DEBUG: logar status únicos da planilha para facilitar mapeamento
+            const uniqueStatuses = [...new Set(this.orders.map(o => o.status))];
+            console.log('[Drevo] Status únicos na planilha:', uniqueStatuses);
             this.saveOrders(); // Sincronizar cache local
             this.renderSidebarClients(); // Atualiza a lista de clientes na Sidebar
           

@@ -319,7 +319,7 @@ const DrevoApp = {
     return str.trim().toLowerCase().replace(/(?:^|\s|-)\S/g, function(a) { return a.toUpperCase(); });
   },
 
-  // Extrair o nome principal do cliente da requisição (ex: "Flavio - Cozinha" -> "Flavio")
+  // Extrair o nome principal do cliente da requisição (ex: "Flavio - Cozinha" -> "Flavio", "Fernando portas vidro" -> "Fernando")
   extractClientName(order) {
     let raw = '';
     if (order.client && order.client.trim() !== '') {
@@ -331,15 +331,30 @@ const DrevoApp = {
     if (!raw) return '';
 
     const lower = raw.toLowerCase();
-    if (lower.includes('interno') || lower.includes('almoxarifado') || lower.includes('showroom') || lower.includes('router') || lower.includes('oleo') || lower.includes('vai pra produ') || lower.includes('saco mercado')) {
-      return '';
+    const ignoreTerms = ['interno', 'almoxarifado', 'showroom', 'router', 'oleo', 'produ', 'saco', 'coladeira'];
+    for (let i = 0; i < ignoreTerms.length; i++) {
+      if (lower.includes(ignoreTerms[i])) return '';
     }
 
-    if (raw.includes('-')) {
-      raw = raw.split('-')[0].trim();
+    // Dividir por traços ou hífens
+    const parts = raw.split(/[-–—/]/);
+    let main = parts[0].trim();
+
+    // Nomes compostos conhecidos
+    const multiWordClients = ['rafael camargo', 'joão antônio', 'joao antonio'];
+    for (let i = 0; i < multiWordClients.length; i++) {
+      if (main.toLowerCase().startsWith(multiWordClients[i])) {
+        return this.toTitleCase(multiWordClients[i]);
+      }
     }
 
-    return this.toTitleCase(raw);
+    // Se houver múltiplas palavras (ex: "Fernando portas vidro"), pegar apenas o primeiro nome do cliente
+    const words = main.split(/\s+/);
+    if (words.length > 1) {
+      return this.toTitleCase(words[0]);
+    }
+
+    return this.toTitleCase(main);
   },
 
   // Renderizar Lista Dinâmica de Clientes no Menu Lateral (Sidebar)

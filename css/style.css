@@ -32,22 +32,22 @@
   --glass-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.7);
   --glass-blur: blur(24px);
 
-  /* Status Colors */
-  --status-pending-bg: rgba(243, 156, 18, 0.1);
-  --status-pending-border: rgba(243, 156, 18, 0.3);
-  --status-pending-text: #f39c12;
+  /* Status Colors (Paleta Executiva Harmonizada Drevo) */
+  --status-pending-bg: rgba(234, 179, 8, 0.12);
+  --status-pending-border: rgba(234, 179, 8, 0.25);
+  --status-pending-text: #eab308;
   
-  --status-approved-bg: rgba(52, 152, 219, 0.1);
-  --status-approved-border: rgba(52, 152, 219, 0.3);
-  --status-approved-text: #3498db;
+  --status-approved-bg: rgba(59, 130, 246, 0.12);
+  --status-approved-border: rgba(59, 130, 246, 0.25);
+  --status-approved-text: #3b82f6;
   
-  --status-synced-bg: rgba(155, 89, 182, 0.1);
-  --status-synced-border: rgba(155, 89, 182, 0.3);
-  --status-synced-text: #9b59b6;
+  --status-synced-bg: rgba(239, 68, 68, 0.12);
+  --status-synced-border: rgba(239, 68, 68, 0.25);
+  --status-synced-text: #ef4444;
   
-  --status-done-bg: rgba(46, 204, 113, 0.1);
-  --status-done-border: rgba(46, 204, 113, 0.3);
-  --status-done-text: #2ecc71;
+  --status-done-bg: rgba(16, 185, 129, 0.12);
+  --status-done-border: rgba(16, 185, 129, 0.25);
+  --status-done-text: #10b981;
 
   /* Curva de AnimaÃ§Ã£o Premium e Fluida */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -198,8 +198,8 @@ body {
     background: rgba(10, 11, 14, 0.98);
   }
   
-  .nav-logo-box, .sidebar-spacer, .sidebar-footer {
-    display: none;
+  .nav-logo-box, .sidebar-spacer, .sidebar-footer, .sidebar-section {
+    display: none !important;
   }
   
   .sidebar-nav {

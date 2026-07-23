@@ -514,7 +514,7 @@ const DrevoApp = {
         datasets: [{
           label: 'Qtd de Pedidos',
           data: ccData,
-          backgroundColor: '#3498db',
+          backgroundColor: 'rgba(229, 0, 0, 0.75)',
           borderRadius: 6
         }]
       },
@@ -540,24 +540,31 @@ const DrevoApp = {
 
     // Gráfico 2: Status (Donut)
     const ctxDonut = this.statusChartCanvas.getContext('2d');
+    const isMobile = window.innerWidth <= 768;
     this.statusChartInstance = new Chart(ctxDonut, {
       type: 'doughnut',
       data: {
-        labels: ['Pendentes', 'Aprovados', 'Sincronizados', 'Concluídos'],
+        labels: ['Pendentes', 'Aprovados', 'Comprados', 'Concluídos'],
         datasets: [{
           data: [statusData.pending, statusData.approved, statusData.synced, statusData.done],
-          backgroundColor: ['#f39c12', '#2ecc71', '#9b59b6', '#3498db'],
+          backgroundColor: ['#eab308', '#3b82f6', '#ef4444', '#10b981'],
           borderWidth: 0
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '75%',
+        cutout: '72%',
         plugins: {
           legend: { 
-            position: 'right',
-            labels: { color: textColor, usePointStyle: true, padding: 20 }
+            position: isMobile ? 'bottom' : 'right',
+            labels: {
+              color: textColor,
+              usePointStyle: true,
+              boxWidth: 8,
+              padding: isMobile ? 12 : 20,
+              font: { size: isMobile ? 11 : 12 }
+            }
           }
         }
       }
@@ -1080,7 +1087,7 @@ const DrevoApp = {
               ${(order.obra || order.client) ? `
               <div class="spec-item">
                 <span class="spec-label">Cliente / Obra</span>
-                <span class="spec-val" style="font-weight: 600; color: #60a5fa;">👤 ${order.obra || order.client}</span>
+                <span class="spec-val" style="font-weight: 600; color: var(--neutral-200);">👤 ${order.obra || order.client}</span>
               </div>` : ''}
               <div class="spec-item">
                 <span class="spec-label">Solicitante</span>

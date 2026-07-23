@@ -905,12 +905,11 @@ const DrevoApp = {
 
     // Filtrar Pedidos
     const filtered = this.orders.filter(order => {
-      // Filtro por Tab
+      // Filtro por Tab de Status
       let passFilter = false;
       const normStatus = this.normalizeStatus(order.status);
       if (this.activeFilter === 'all') {
-        // Excluir pedidos concluídos (done ou done_obra) ou faturados (synced) da aba "Todos" para evitar poluição
-        passFilter = (normStatus !== 'done' && normStatus !== 'done_obra' && normStatus !== 'synced');
+        passFilter = true; // Exibe todos os pedidos (pendentes, comprados e concluídos)
       } else if (this.activeFilter === 'pending') {
         passFilter = (normStatus === 'pending' || normStatus === 'approved');
       } else if (this.activeFilter === 'synced') {

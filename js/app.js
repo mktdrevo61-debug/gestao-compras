@@ -615,6 +615,7 @@ const DrevoApp = {
             // Garantir que cada pedido tenha um identificador 100% unico para a interface (evita bugs se houver IDs duplicados na planilha)
             this.orders.forEach(o => { if(!o._uid) o._uid = Math.random().toString(36).substring(2, 11); });
             this.saveOrders(); // Sincronizar cache local
+            this.renderSidebarClients(); // Atualiza a lista de clientes na Sidebar
           
           this.erpIndicatorText.innerHTML = `<span class="status-dot"></span> <span style="white-space: nowrap;">ERP Conectado</span>`;
         }

@@ -46,6 +46,14 @@
         </svg>
         <span>Pedidos</span>
       </button>
+
+      <!-- Seção Dinâmica de Clientes / Obras na Sidebar -->
+      <div class="sidebar-section" style="margin-top: 1.2rem; padding-top: 0.8rem; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+        <span class="sidebar-section-label" style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--neutral-400); font-weight: 700; padding: 0 0.8rem; display: block; margin-bottom: 0.6rem;">Clientes / Obras</span>
+        <div id="sidebar-clients-list" style="display: flex; flex-direction: column; gap: 0.35rem; max-height: 280px; overflow-y: auto; padding-right: 0.2rem;">
+          <!-- Populado dinamicamente via JS com dados da planilha -->
+        </div>
+      </div>
     </nav>
 
     <!-- Spacer para empurrar o resto para baixo no desktop -->

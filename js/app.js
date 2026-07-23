@@ -490,9 +490,13 @@ const DrevoApp = {
       const cc = o.costCenter || 'Outros';
       costCenterData[cc] = (costCenterData[cc] || 0) + 1;
 
-      // Status
-      const s = o.status || 'pending';
-      if (statusData[s] !== undefined) statusData[s]++;
+      // Status com a normalização correta dos valores vindos da planilha
+      const normSt = this.normalizeStatus(o.status);
+      if (normSt === 'done_obra') {
+        statusData['done']++;
+      } else if (statusData[normSt] !== undefined) {
+        statusData[normSt]++;
+      }
     });
     
     const ccLabels = Object.keys(costCenterData);
@@ -646,6 +650,9 @@ const DrevoApp = {
             this.orders.forEach(o => { if(!o._uid) o._uid = Math.random().toString(36).substring(2, 11); });
             this.saveOrders(); // Sincronizar cache local
             this.renderSidebarClients(); // Atualiza a lista de clientes na Sidebar
+            this.renderKPIs();
+            this.renderCharts();
+            this.renderOrders();
           
           this.erpIndicatorText.innerHTML = `<span class="status-dot"></span> <span style="white-space: nowrap;">ERP Conectado</span>`;
         }

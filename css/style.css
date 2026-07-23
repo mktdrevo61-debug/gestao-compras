@@ -177,25 +177,32 @@ body {
 /* =========================================================
    RESPONSIVO: BOTTOM NAV (INSTAGRAM STYLE)
    ========================================================= */
-@media (max-width: 768px) {
+@media (max-width: 992px) {
   body {
     flex-direction: column;
+    overflow-x: hidden;
   }
   
   .sidebar {
-    width: 100%;
-    height: 75px;
-    position: fixed;
-    bottom: 0;
-    top: auto;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-around;
-    padding: 0 1rem;
-    padding-bottom: env(safe-area-inset-bottom);
-    border-right: none;
-    border-top: 1px solid var(--glass-border);
-    background: rgba(10, 11, 14, 0.98);
+    width: 100% !important;
+    height: 64px !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    top: auto !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 9999 !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-around !important;
+    padding: 0 1rem !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+    border-right: none !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    background: rgba(10, 11, 14, 0.96) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5) !important;
   }
   
   .nav-logo-box, .sidebar-spacer, .sidebar-footer, .sidebar-section {
@@ -203,30 +210,32 @@ body {
   }
   
   .sidebar-nav {
-    flex-direction: row;
-    width: 100%;
-    justify-content: space-around;
-    gap: 0;
+    flex-direction: row !important;
+    width: 100% !important;
+    justify-content: space-around !important;
+    align-items: center !important;
+    gap: 0 !important;
   }
   
   .sidebar-nav-btn {
-    flex-direction: column;
-    gap: 0.2rem;
-    padding: 0.5rem;
-    font-size: 0.7rem;
-    width: 80px;
-    align-items: center;
+    flex-direction: column !important;
+    gap: 0.15rem !important;
+    padding: 0.35rem 0.6rem !important;
+    font-size: 0.7rem !important;
+    width: auto !important;
+    align-items: center !important;
     border: none !important;
     background: transparent !important;
+    box-shadow: none !important;
   }
   
   .sidebar-nav-btn svg {
-    width: 24px;
-    height: 24px;
+    width: 22px !important;
+    height: 22px !important;
   }
   
   .app-container {
-    padding-bottom: 90px;
+    padding-bottom: 140px !important;
   }
 }
 

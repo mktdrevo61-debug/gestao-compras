@@ -314,39 +314,52 @@ const DrevoApp = {
   // NOVAS FUNÇÕES (V2): CATALOG, CHAT E LOTE
   // ----------------------------------------------------
   
+  toTitleCase(str) {
+    if (!str) return '';
+    return str.trim().toLowerCase().replace(/(?:^|\s|-)\S/g, function(a) { return a.toUpperCase(); });
+  },
+
   // Extrair o nome principal do cliente da requisição (ex: "Flavio - Cozinha" -> "Flavio")
   extractClientName(order) {
+    let raw = '';
     if (order.client && order.client.trim() !== '') {
-      return order.client.trim();
+      raw = order.client.trim();
+    } else if (order.obra && order.obra.trim() !== '') {
+      raw = order.obra.trim();
     }
-    if (!order.obra || order.obra.trim() === '') return '';
-    const obraStr = order.obra.trim();
-    // Se for local interno ou almoxarifado, ignorar
-    const lower = obraStr.toLowerCase();
-    if (lower.includes('interno') || lower.includes('almoxarifado') || lower.includes('showroom') || lower.includes('router') || lower.includes('oleo')) {
+
+    if (!raw) return '';
+
+    const lower = raw.toLowerCase();
+    if (lower.includes('interno') || lower.includes('almoxarifado') || lower.includes('showroom') || lower.includes('router') || lower.includes('oleo') || lower.includes('vai pra produ') || lower.includes('saco mercado')) {
       return '';
     }
-    // Extrai o nome antes do hífen ou traço se houver (ex: "Flavio - Cozinha" -> "Flavio")
-    if (obraStr.includes('-')) {
-      return obraStr.split('-')[0].trim();
+
+    if (raw.includes('-')) {
+      raw = raw.split('-')[0].trim();
     }
-    return obraStr;
+
+    return this.toTitleCase(raw);
   },
 
   // Renderizar Lista Dinâmica de Clientes no Menu Lateral (Sidebar)
   renderSidebarClients() {
     if (!this.sidebarClientsList) return;
 
-    // Agrupar e contar pedidos por cliente extraído da planilha
-    const clientCounts = {};
+    // Agrupar e contar pedidos por cliente com chave minúscula para evitar duplicatas (cidalia x Cidalia)
+    const clientMap = {}; // { 'cidalia': { name: 'Cidalia', count: 3 } }
     this.orders.forEach(o => {
-      const clientName = this.extractClientName(o);
-      if (clientName) {
-        clientCounts[clientName] = (clientCounts[clientName] || 0) + 1;
+      const name = this.extractClientName(o);
+      if (name) {
+        const key = name.toLowerCase();
+        if (!clientMap[key]) {
+          clientMap[key] = { name: name, count: 0 };
+        }
+        clientMap[key].count++;
       }
     });
 
-    const clientNames = Object.keys(clientCounts).sort((a, b) => a.localeCompare(b));
+    const clientKeys = Object.keys(clientMap).sort((a, b) => clientMap[a].name.localeCompare(clientMap[b].name));
 
     let html = `
       <button class="sidebar-nav-btn ${!this.activeClientFilter ? 'active' : ''}" data-client="" style="font-size: 0.8rem; padding: 0.5rem 0.8rem; justify-content: space-between;">
@@ -358,9 +371,11 @@ const DrevoApp = {
       </button>
     `;
 
-    clientNames.forEach(client => {
-      const isActive = (this.activeClientFilter.toLowerCase() === client.toLowerCase());
-      const count = clientCounts[client];
+    clientKeys.forEach(key => {
+      const client = clientMap[key].name;
+      const count = clientMap[key].count;
+      const isActive = (this.activeClientFilter.toLowerCase() === key);
+
       html += `
         <button class="sidebar-nav-btn ${isActive ? 'active' : ''}" data-client="${client}" style="font-size: 0.8rem; padding: 0.5rem 0.8rem; justify-content: space-between; border-radius: 8px;">
           <span style="display: flex; align-items: center; gap: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">

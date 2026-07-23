@@ -131,10 +131,11 @@ const DrevoApp = {
     // Container de Clientes na Sidebar
     this.sidebarClientsList = document.getElementById('sidebar-clients-list');
 
-    // Estado ativo dos filtros
+    // Estado ativo dos filtros e cards expandidos
     this.activeFilter = 'all';
     this.activeClientFilter = '';
     this.searchQuery = '';
+    this.expandedCardId = null;
   },
 
   // Vinculação de Eventos
@@ -1228,6 +1229,15 @@ const DrevoApp = {
       `;
 
       this.ordersContainer.appendChild(card);
+
+      // Preservar card aberto se estivesse expandido antes da sincronização
+      if (this.expandedCardId && (safeUid === this.expandedCardId || order.id === this.expandedCardId)) {
+        card.classList.add('expanded');
+        const detailsPane = card.querySelector('.order-details-pane');
+        if (detailsPane) {
+          detailsPane.style.maxHeight = '2000px';
+        }
+      }
     });
   },
 
@@ -1325,25 +1335,29 @@ const DrevoApp = {
     return colors[colorName] || '#4B5162';
   },
 
-  // Expandir / Recolher Card de Pedido
+  // Expandir / Recolher Card de Pedido (preserva o card aberto durante a sincronização em segundo plano)
   toggleCard(orderId) {
     const card = document.getElementById(`card-${orderId}`);
+    if (!card) return;
     const details = card.querySelector('.order-details-pane');
     
     if (card.classList.contains('expanded')) {
       card.classList.remove('expanded');
       details.style.maxHeight = '0';
+      if (this.expandedCardId === orderId) this.expandedCardId = null;
     } else {
       // Recolher todos os outros para manter o painel limpo
       document.querySelectorAll('.order-card').forEach(c => {
         if (c.id !== `card-${orderId}`) {
           c.classList.remove('expanded');
-          c.querySelector('.order-details-pane').style.maxHeight = '0';
+          const d = c.querySelector('.order-details-pane');
+          if (d) d.style.maxHeight = '0';
         }
       });
 
       card.classList.add('expanded');
-      details.style.maxHeight = details.scrollHeight + 'px';
+      this.expandedCardId = orderId;
+      details.style.maxHeight = (details.scrollHeight + 100) + 'px';
     }
   },
 

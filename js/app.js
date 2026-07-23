@@ -128,9 +128,11 @@ const DrevoApp = {
     this.toastIcon = document.getElementById('toast-icon');
     this.toastText = document.getElementById('toast-text');
 
-    // Container de Clientes na Sidebar e no Celular
+    // Container de Clientes na Sidebar, Pílulas e Tela de Clientes Mobile
     this.sidebarClientsList = document.getElementById('sidebar-clients-list');
     this.clientPillsBar = document.getElementById('client-pills-bar');
+    this.mobileClientsFullGrid = document.getElementById('mobile-clients-full-grid');
+    this.navBtnClients = document.getElementById('nav-btn-clients');
 
     // Estado ativo dos filtros e cards expandidos
     this.activeFilter = 'all';
@@ -145,6 +147,7 @@ const DrevoApp = {
     this.cardFp.addEventListener('click', () => this.promptPasswordForOrderCreation());
     this.cardCp.addEventListener('click', () => this.navigateTo('screen-tracking'));
     this.navBtnHome.addEventListener('click', () => this.navigateTo('screen-home'));
+    if (this.navBtnClients) this.navBtnClients.addEventListener('click', () => this.navigateTo('screen-clients'));
     this.navBtnTracking.addEventListener('click', () => this.navigateTo('screen-tracking'));
     this.navLogo.addEventListener('click', () => this.navigateTo('screen-home'));
 
@@ -444,6 +447,45 @@ const DrevoApp = {
       this.clientPillsBar.querySelectorAll('button[data-client]').forEach(btn => {
         btn.addEventListener('click', () => {
           const clientSelected = btn.dataset.client;
+          this.activeClientFilter = clientSelected;
+          this.searchQuery = clientSelected.toLowerCase().trim();
+          this.inputSearch.value = clientSelected;
+          this.renderSidebarClients();
+          this.navigateTo('screen-tracking');
+          this.renderOrders();
+        });
+      });
+    }
+
+    // 3. Renderizar na Tela Dedicada de Clientes (Mobile Grid)
+    if (this.mobileClientsFullGrid) {
+      let htmlGrid = `
+        <div class="glass-panel" data-client="" style="padding: 1rem; border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; text-align: center; background: ${!this.activeClientFilter ? 'rgba(229,0,0,0.15)' : 'rgba(255,255,255,0.02)'}; border: 1px solid ${!this.activeClientFilter ? 'rgba(229,0,0,0.4)' : 'rgba(255,255,255,0.06)'};">
+          <div style="font-size: 1.8rem; margin-bottom: 0.4rem;">✨</div>
+          <span style="font-size: 0.85rem; font-weight: 700; color: var(--sync-white);">Todos os Clientes</span>
+          <span style="font-size: 0.7rem; color: var(--neutral-400); margin-top: 0.2rem;">${this.orders.length} pedidos</span>
+        </div>
+      `;
+
+      clientKeys.forEach(key => {
+        const client = clientMap[key].name;
+        const count = clientMap[key].count;
+        const isActive = (this.activeClientFilter.toLowerCase() === key);
+
+        htmlGrid += `
+          <div class="glass-panel" data-client="${client}" style="padding: 1rem; border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; text-align: center; background: ${isActive ? 'rgba(229,0,0,0.15)' : 'rgba(255,255,255,0.02)'}; border: 1px solid ${isActive ? 'rgba(229,0,0,0.4)' : 'rgba(255,255,255,0.06)'};">
+            <div style="font-size: 1.8rem; margin-bottom: 0.4rem;">👤</div>
+            <span style="font-size: 0.85rem; font-weight: 700; color: var(--sync-white); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%;">${client}</span>
+            <span style="font-size: 0.7rem; color: var(--neutral-400); margin-top: 0.2rem;">${count} pedido(s)</span>
+          </div>
+        `;
+      });
+
+      this.mobileClientsFullGrid.innerHTML = htmlGrid;
+
+      this.mobileClientsFullGrid.querySelectorAll('div[data-client]').forEach(card => {
+        card.addEventListener('click', () => {
+          const clientSelected = card.dataset.client;
           this.activeClientFilter = clientSelected;
           this.searchQuery = clientSelected.toLowerCase().trim();
           this.inputSearch.value = clientSelected;

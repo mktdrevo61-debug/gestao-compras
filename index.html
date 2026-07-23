@@ -12,7 +12,7 @@
   <link rel="icon" type="image/png" href="assets/favicon.png?v=2">
   
   <!-- Estilos Oficiais do Módulo -->
-  <link rel="stylesheet" href="css/style.css?v=ios1">
+  <link rel="stylesheet" href="css/style.css?v=20260723_v20">
   <!-- Chart.js para gráficos -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -33,6 +33,16 @@
           <polyline points="9 22 9 12 15 12 15 22"></polyline>
         </svg>
         <span>Requisições</span>
+      </button>
+
+      <button id="nav-btn-clients" class="sidebar-nav-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+        <span>Clientes</span>
       </button>
 
       <button id="nav-btn-tracking" class="sidebar-nav-btn">
@@ -313,6 +323,21 @@
     </section>
 
     <!-- ==========================================================================
+         2.5 TELA DE CLIENTES & OBRAS (DEDICADA MOBILE)
+         ========================================================================== -->
+    <section id="screen-clients" class="app-screen">
+      <div class="glass-panel">
+        <span class="screen-tag">Diretório Corporativo</span>
+        <h1 class="screen-title" style="margin-bottom: 0.3rem;">Clientes & Obras</h1>
+        <p style="font-size: 0.85rem; color: var(--neutral-400); margin-bottom: 1.5rem;">Selecione um cliente para visualizar todos os seus pedidos e acompanhamento.</p>
+        
+        <div id="mobile-clients-full-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.8rem;">
+          <!-- Populado dinamicamente via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================================================
          3. TELA ACOMPANHAMENTO (CONTROLAR PEDIDO - CP)
          ========================================================================== -->
     <section id="screen-tracking" class="app-screen">
@@ -465,6 +490,6 @@
       });
     });
   </script>
-  <script src="js/app.js"></script>
+  <script src="js/app.js?v=20260723_v20"></script>
 </body>
 </html>

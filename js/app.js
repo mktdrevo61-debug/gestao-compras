@@ -36,6 +36,7 @@ const DrevoApp = {
     this.updateSmartCatalog(); // [NEW] Preenche o datalist
     this.renderKPIs();
     this.renderCharts(); // [NEW] Renderiza graficos
+    this.renderSidebarClients(); // [NEW] Preenche clientes na Sidebar
     this.renderOrders();
     this.setupColorSwatches();
     this.setupAutoRefresh();
@@ -127,8 +128,12 @@ const DrevoApp = {
     this.toastIcon = document.getElementById('toast-icon');
     this.toastText = document.getElementById('toast-text');
 
+    // Container de Clientes na Sidebar
+    this.sidebarClientsList = document.getElementById('sidebar-clients-list');
+
     // Estado ativo dos filtros
     this.activeFilter = 'all';
+    this.activeClientFilter = '';
     this.searchQuery = '';
   },
 
@@ -309,6 +314,80 @@ const DrevoApp = {
   // NOVAS FUNÇÕES (V2): CATALOG, CHAT E LOTE
   // ----------------------------------------------------
   
+  // Extrair o nome principal do cliente da requisição (ex: "Flavio - Cozinha" -> "Flavio")
+  extractClientName(order) {
+    if (order.client && order.client.trim() !== '') {
+      return order.client.trim();
+    }
+    if (!order.obra || order.obra.trim() === '') return '';
+    const obraStr = order.obra.trim();
+    // Se for local interno ou almoxarifado, ignorar
+    const lower = obraStr.toLowerCase();
+    if (lower.includes('interno') || lower.includes('almoxarifado') || lower.includes('showroom') || lower.includes('router') || lower.includes('oleo')) {
+      return '';
+    }
+    // Extrai o nome antes do hífen ou traço se houver (ex: "Flavio - Cozinha" -> "Flavio")
+    if (obraStr.includes('-')) {
+      return obraStr.split('-')[0].trim();
+    }
+    return obraStr;
+  },
+
+  // Renderizar Lista Dinâmica de Clientes no Menu Lateral (Sidebar)
+  renderSidebarClients() {
+    if (!this.sidebarClientsList) return;
+
+    // Agrupar e contar pedidos por cliente extraído da planilha
+    const clientCounts = {};
+    this.orders.forEach(o => {
+      const clientName = this.extractClientName(o);
+      if (clientName) {
+        clientCounts[clientName] = (clientCounts[clientName] || 0) + 1;
+      }
+    });
+
+    const clientNames = Object.keys(clientCounts).sort((a, b) => a.localeCompare(b));
+
+    let html = `
+      <button class="sidebar-nav-btn ${!this.activeClientFilter ? 'active' : ''}" data-client="" style="font-size: 0.8rem; padding: 0.5rem 0.8rem; justify-content: space-between;">
+        <span style="display: flex; align-items: center; gap: 0.5rem;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Todos os Pedidos
+        </span>
+        <span style="font-size: 0.7rem; opacity: 0.6;">${this.orders.length}</span>
+      </button>
+    `;
+
+    clientNames.forEach(client => {
+      const isActive = (this.activeClientFilter.toLowerCase() === client.toLowerCase());
+      const count = clientCounts[client];
+      html += `
+        <button class="sidebar-nav-btn ${isActive ? 'active' : ''}" data-client="${client}" style="font-size: 0.8rem; padding: 0.5rem 0.8rem; justify-content: space-between; border-radius: 8px;">
+          <span style="display: flex; align-items: center; gap: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            ${client}
+          </span>
+          <span style="font-size: 0.7rem; background: rgba(255,255,255,0.08); padding: 0.1rem 0.4rem; border-radius: 10px; font-weight: 600;">${count}</span>
+        </button>
+      `;
+    });
+
+    this.sidebarClientsList.innerHTML = html;
+
+    // Vincular clique em cada botão de cliente da sidebar
+    this.sidebarClientsList.querySelectorAll('button[data-client]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const clientSelected = btn.dataset.client;
+        this.activeClientFilter = clientSelected;
+        this.searchQuery = clientSelected.toLowerCase().trim();
+        this.inputSearch.value = clientSelected;
+        this.renderSidebarClients();
+        this.navigateTo('screen-tracking');
+        this.renderOrders();
+      });
+    });
+  },
+
   updateSmartCatalog() {
     if (!this.itemsCatalog) return;
     const uniqueItems = new Set(this.orders.map(o => o.item.trim()).filter(i => i !== ''));
@@ -804,15 +883,20 @@ const DrevoApp = {
         passFilter = (normStatus === 'done' || normStatus === 'done_obra');
       }
 
-      // Filtro por Busca
+      // Filtro por Busca (suporta busca por item, ID, marca, setor ou cliente/obra)
       let passSearch = false;
       if (!this.searchQuery) {
         passSearch = true;
       } else {
-        passSearch = order.item.toLowerCase().includes(this.searchQuery) ||
-                     order.id.toLowerCase().includes(this.searchQuery) ||
-                     order.brand.toLowerCase().includes(this.searchQuery) ||
-                     order.costCenter.toLowerCase().includes(this.searchQuery);
+        const q = this.searchQuery;
+        const clientName = this.extractClientName(order).toLowerCase();
+        passSearch = order.item.toLowerCase().includes(q) ||
+                     order.id.toLowerCase().includes(q) ||
+                     order.brand.toLowerCase().includes(q) ||
+                     order.costCenter.toLowerCase().includes(q) ||
+                     (order.obra && order.obra.toLowerCase().includes(q)) ||
+                     (order.client && order.client.toLowerCase().includes(q)) ||
+                     clientName.includes(q);
       }
 
       return passFilter && passSearch;
@@ -958,6 +1042,11 @@ const DrevoApp = {
           <div class="details-content">
             
             <div class="specs-grid">
+              ${(order.obra || order.client) ? `
+              <div class="spec-item">
+                <span class="spec-label">Cliente / Obra</span>
+                <span class="spec-val" style="font-weight: 600; color: #60a5fa;">👤 ${order.obra || order.client}</span>
+              </div>` : ''}
               <div class="spec-item">
                 <span class="spec-label">Solicitante</span>
                 <span class="spec-val" style="font-weight: 600; color: var(--sync-white);">${order.requester || 'Não informado'}</span>

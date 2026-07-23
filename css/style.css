@@ -2058,7 +2058,9 @@ body {
   grid-template-columns: 1fr 1fr;
   gap: 1.5rem;
 }
-@media (max-width: 900px) {
+@media (max-width: 992px) {
+  .dashboard-charts-grid {
+    grid-template-columns: 1fr !important;
   }
 }
 

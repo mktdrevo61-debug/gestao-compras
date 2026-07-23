@@ -128,8 +128,9 @@ const DrevoApp = {
     this.toastIcon = document.getElementById('toast-icon');
     this.toastText = document.getElementById('toast-text');
 
-    // Container de Clientes na Sidebar
+    // Container de Clientes na Sidebar e no Celular
     this.sidebarClientsList = document.getElementById('sidebar-clients-list');
+    this.clientPillsBar = document.getElementById('client-pills-bar');
 
     // Estado ativo dos filtros e cards expandidos
     this.activeFilter = 'all';
@@ -358,10 +359,8 @@ const DrevoApp = {
     return this.toTitleCase(main);
   },
 
-  // Renderizar Lista Dinâmica de Clientes no Menu Lateral (Sidebar)
+  // Renderizar Lista Dinâmica de Clientes no Menu Lateral e na Barra Deslizável do Celular
   renderSidebarClients() {
-    if (!this.sidebarClientsList) return;
-
     // Agrupar e contar pedidos por cliente com chave minúscula para evitar duplicatas (cidalia x Cidalia)
     const clientMap = {}; // { 'cidalia': { name: 'Cidalia', count: 3 } }
     this.orders.forEach(o => {
@@ -377,46 +376,83 @@ const DrevoApp = {
 
     const clientKeys = Object.keys(clientMap).sort((a, b) => clientMap[a].name.localeCompare(clientMap[b].name));
 
-    let html = `
-      <button class="sidebar-nav-btn ${!this.activeClientFilter ? 'active' : ''}" data-client="" style="font-size: 0.8rem; padding: 0.5rem 0.8rem; justify-content: space-between;">
-        <span style="display: flex; align-items: center; gap: 0.5rem;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          Todos os Pedidos
-        </span>
-        <span style="font-size: 0.7rem; opacity: 0.6;">${this.orders.length}</span>
-      </button>
-    `;
-
-    clientKeys.forEach(key => {
-      const client = clientMap[key].name;
-      const count = clientMap[key].count;
-      const isActive = (this.activeClientFilter.toLowerCase() === key);
-
-      html += `
-        <button class="sidebar-nav-btn ${isActive ? 'active' : ''}" data-client="${client}" style="font-size: 0.8rem; padding: 0.5rem 0.8rem; justify-content: space-between; border-radius: 8px;">
-          <span style="display: flex; align-items: center; gap: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            ${client}
+    // 1. Renderizar na Sidebar (Desktop)
+    if (this.sidebarClientsList) {
+      let htmlSidebar = `
+        <button class="sidebar-nav-btn ${!this.activeClientFilter ? 'active' : ''}" data-client="" style="font-size: 0.8rem; padding: 0.5rem 0.8rem; justify-content: space-between;">
+          <span style="display: flex; align-items: center; gap: 0.5rem;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            Todos os Pedidos
           </span>
-          <span style="font-size: 0.7rem; background: rgba(255,255,255,0.08); padding: 0.1rem 0.4rem; border-radius: 10px; font-weight: 600;">${count}</span>
+          <span style="font-size: 0.7rem; opacity: 0.6;">${this.orders.length}</span>
         </button>
       `;
-    });
 
-    this.sidebarClientsList.innerHTML = html;
+      clientKeys.forEach(key => {
+        const client = clientMap[key].name;
+        const count = clientMap[key].count;
+        const isActive = (this.activeClientFilter.toLowerCase() === key);
 
-    // Vincular clique em cada botão de cliente da sidebar
-    this.sidebarClientsList.querySelectorAll('button[data-client]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const clientSelected = btn.dataset.client;
-        this.activeClientFilter = clientSelected;
-        this.searchQuery = clientSelected.toLowerCase().trim();
-        this.inputSearch.value = clientSelected;
-        this.renderSidebarClients();
-        this.navigateTo('screen-tracking');
-        this.renderOrders();
+        htmlSidebar += `
+          <button class="sidebar-nav-btn ${isActive ? 'active' : ''}" data-client="${client}" style="font-size: 0.8rem; padding: 0.5rem 0.8rem; justify-content: space-between; border-radius: 8px;">
+            <span style="display: flex; align-items: center; gap: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              ${client}
+            </span>
+            <span style="font-size: 0.7rem; background: rgba(255,255,255,0.08); padding: 0.1rem 0.4rem; border-radius: 10px; font-weight: 600;">${count}</span>
+          </button>
+        `;
       });
-    });
+
+      this.sidebarClientsList.innerHTML = htmlSidebar;
+
+      this.sidebarClientsList.querySelectorAll('button[data-client]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const clientSelected = btn.dataset.client;
+          this.activeClientFilter = clientSelected;
+          this.searchQuery = clientSelected.toLowerCase().trim();
+          this.inputSearch.value = clientSelected;
+          this.renderSidebarClients();
+          this.navigateTo('screen-tracking');
+          this.renderOrders();
+        });
+      });
+    }
+
+    // 2. Renderizar na Barra Deslizável do Celular / Mobile (Swipe Horizontal)
+    if (this.clientPillsBar) {
+      let htmlPills = `
+        <button class="filter-tab ${!this.activeClientFilter ? 'active' : ''}" data-client="" style="white-space: nowrap; font-size: 0.78rem; padding: 0.4rem 0.85rem; border-radius: 20px; flex-shrink: 0; background: ${!this.activeClientFilter ? 'rgba(229,0,0,0.2)' : 'rgba(255,255,255,0.03)'}; border: 1px solid ${!this.activeClientFilter ? 'rgba(229,0,0,0.4)' : 'rgba(255,255,255,0.08)'}; color: ${!this.activeClientFilter ? 'var(--sync-red)' : 'var(--neutral-300)'};">
+          ✨ Todos (${this.orders.length})
+        </button>
+      `;
+
+      clientKeys.forEach(key => {
+        const client = clientMap[key].name;
+        const count = clientMap[key].count;
+        const isActive = (this.activeClientFilter.toLowerCase() === key);
+
+        htmlPills += `
+          <button class="filter-tab ${isActive ? 'active' : ''}" data-client="${client}" style="white-space: nowrap; font-size: 0.78rem; padding: 0.4rem 0.85rem; border-radius: 20px; flex-shrink: 0; background: ${isActive ? 'rgba(229,0,0,0.2)' : 'rgba(255,255,255,0.03)'}; border: 1px solid ${isActive ? 'rgba(229,0,0,0.4)' : 'rgba(255,255,255,0.08)'}; color: ${isActive ? 'var(--sync-red)' : 'var(--neutral-300)'}; font-weight: ${isActive ? '700' : '500'};">
+            👤 ${client} (${count})
+          </button>
+        `;
+      });
+
+      this.clientPillsBar.innerHTML = htmlPills;
+
+      this.clientPillsBar.querySelectorAll('button[data-client]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const clientSelected = btn.dataset.client;
+          this.activeClientFilter = clientSelected;
+          this.searchQuery = clientSelected.toLowerCase().trim();
+          this.inputSearch.value = clientSelected;
+          this.renderSidebarClients();
+          this.navigateTo('screen-tracking');
+          this.renderOrders();
+        });
+      });
+    }
   },
 
   updateSmartCatalog() {
